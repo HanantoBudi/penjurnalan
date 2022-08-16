@@ -13,9 +13,6 @@ public class KafkaConsumer {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(KafkaConsumer.class);
 
-    @Autowired
-    private TSubrogationSorService tSubrogationSorService;
-
     @Value("${spring.kafka.topic-json.name}")
     private String topicName;
 

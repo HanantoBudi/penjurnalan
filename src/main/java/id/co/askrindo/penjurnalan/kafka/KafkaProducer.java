@@ -16,11 +16,11 @@ public class KafkaProducer {
     @Value("${spring.kafka.topic-json.name}")
     private String topicName;
 
-    private KafkaTemplate<String, CreateSor> kafkaTemplate;
+//    private KafkaTemplate<String, CreateSor> kafkaTemplate;
 
-    public KafkaProducer(KafkaTemplate<String, CreateSor> kafkaTemplate) {
-        this.kafkaTemplate = kafkaTemplate;
-    }
+//    public KafkaProducer(KafkaTemplate<String, CreateSor> kafkaTemplate) {
+//        this.kafkaTemplate = kafkaTemplate;
+//    }
 
     // public void sendMessage(CreateSor data){
     //     Message<CreateSor> message = MessageBuilder
