@@ -1,4 +1,4 @@
-package id.co.askrindo.spreadingofrecoveries.errors;
+package id.co.askrindo.penjurnalan.errors;
 
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;

@@ -1,4 +1,4 @@
-package id.co.askrindo.spreadingofrecoveries.errors.exception;
+package id.co.askrindo.penjurnalan.errors.exception;
 
 public class RecordNotFoundException extends RuntimeException {
     String message;

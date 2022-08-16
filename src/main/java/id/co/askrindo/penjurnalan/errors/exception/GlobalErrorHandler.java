@@ -1,4 +1,4 @@
-package id.co.askrindo.spreadingofrecoveries.errors.exception;
+package id.co.askrindo.penjurnalan.errors.exception;
 
 import lombok.AllArgsConstructor;
 import lombok.Getter;
@@ -8,6 +8,8 @@ import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.ControllerAdvice;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.ResponseBody;
+import id.co.askrindo.penjurnalan.errors.exception.RecordNotFoundException;
+import id.co.askrindo.penjurnalan.errors.exception.InternalServerErrorException;
 
 @ControllerAdvice
 public class GlobalErrorHandler {
