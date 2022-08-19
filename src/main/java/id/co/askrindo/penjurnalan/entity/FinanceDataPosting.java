@@ -15,7 +15,7 @@ import java.math.BigDecimal;
 import java.util.Date;
 
 @Entity
-@Table(name = "finance_data_posting", schema = "brisurf")
+@Table(name = "m_finance_data_posting", schema = "brisurf")
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
