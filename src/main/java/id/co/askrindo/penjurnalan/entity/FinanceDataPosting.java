@@ -30,9 +30,6 @@ public class FinanceDataPosting {
     @Column(name = "data_type", length = 20)
     private String dataType;
 
-    @Column(name = "data_from", length = 20)
-    private String dataFrom;
-
     @Column(name = "data_json")
     private String dataJson;
 

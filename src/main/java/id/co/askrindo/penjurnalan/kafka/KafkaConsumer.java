@@ -1,9 +1,9 @@
 package id.co.askrindo.penjurnalan.kafka;
 
-import id.co.askrindo.penjurnalan.model.KoreksiIjp;
-import id.co.askrindo.penjurnalan.model.KoreksiKlaim;
-import id.co.askrindo.penjurnalan.model.ProduksiIjp;
-import id.co.askrindo.penjurnalan.model.ProduksiKlaim;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.ObjectWriter;
+import id.co.askrindo.penjurnalan.model.Journal;
 import id.co.askrindo.penjurnalan.service.PenjurnalanService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -34,34 +34,36 @@ public class KafkaConsumer {
     private PenjurnalanService penjurnalanService;
 
      @KafkaListener(topics = "${spring.kafka.topic.koreksiIjp}", groupId = "${spring.kafka.consumer.group-id}")
-     public void consumeKoreksiIjp(KoreksiIjp koreksiIjp){
-         LOGGER.info(String.format("Json message recieved : %s [start] -> %s", topicKoreksiIjp, koreksiIjp));
-         sendToService("KOREKSI IJP", "", koreksiIjp, null, null, null);
-         LOGGER.info(String.format("Json message recieved : %s [end] -> %s", topicKoreksiIjp, koreksiIjp));
+     public void consumeKoreksiIjp(Journal journal) throws JsonProcessingException {
+         LOGGER.info(String.format("Json message recieved : %s [start] -> %s", topicKoreksiIjp, journal));
+         sendToService("KOREKSI IJP", journal);
+         LOGGER.info(String.format("Json message recieved : %s [end] -> %s", topicKoreksiIjp, journal));
      }
 
     @KafkaListener(topics = "${spring.kafka.topic.koreksiKlaim}", groupId = "${spring.kafka.consumer.group-id}")
-    public void consumeKoreksiKlaim(KoreksiKlaim koreksiKlaim){
-        LOGGER.info(String.format("Json message recieved : %s [start] -> %s", topicKoreksiKlaim, koreksiKlaim));
-        sendToService("KOREKSI KLAIM", "", null, koreksiKlaim, null, null);
-        LOGGER.info(String.format("Json message recieved : %s [end] -> %s", topicKoreksiKlaim, koreksiKlaim));
+    public void consumeKoreksiKlaim(Journal journal) throws JsonProcessingException {
+        LOGGER.info(String.format("Json message recieved : %s [start] -> %s", topicKoreksiKlaim, journal));
+        sendToService("KOREKSI KLAIM", journal);
+        LOGGER.info(String.format("Json message recieved : %s [end] -> %s", topicKoreksiKlaim, journal));
     }
 
     @KafkaListener(topics = "${spring.kafka.topic.produksiIjp}", groupId = "${spring.kafka.consumer.group-id}")
-    public void consumeProduksiIjp(ProduksiIjp produksiIjp){
-        LOGGER.info(String.format("Json message recieved : %s [start] -> %s", topicProduksiIjp, produksiIjp));
-        sendToService("PRODUKSI IJP", "", null, null, produksiIjp, null);
-        LOGGER.info(String.format("Json message recieved : %s [end] -> %s", topicProduksiIjp, produksiIjp));
+    public void consumeProduksiIjp(Journal journal) throws JsonProcessingException {
+        LOGGER.info(String.format("Json message recieved : %s [start] -> %s", topicProduksiIjp, journal));
+        sendToService("PRODUKSI IJP", journal);
+        LOGGER.info(String.format("Json message recieved : %s [end] -> %s", topicProduksiIjp, journal));
     }
 
     @KafkaListener(topics = "${spring.kafka.topic.produksiKlaim}", groupId = "${spring.kafka.consumer.group-id}")
-    public void consumeProduksiKlaim(ProduksiKlaim produksiKlaim){
-        LOGGER.info(String.format("Json message recieved : %s [start] -> %s", topicProduksiKlaim, produksiKlaim));
-        sendToService("PRODUKSI KLAIM", "", null, null, null, produksiKlaim);
-        LOGGER.info(String.format("Json message recieved : %s [end] -> %s", topicProduksiKlaim, produksiKlaim));
+    public void consumeProduksiKlaim(Journal journal) throws JsonProcessingException {
+        LOGGER.info(String.format("Json message recieved : %s [start] -> %s", topicProduksiKlaim, journal));
+        sendToService("PRODUKSI KLAIM", journal);
+        LOGGER.info(String.format("Json message recieved : %s [end] -> %s", topicProduksiKlaim, journal));
     }
 
-    public void sendToService(String topic, String message, KoreksiIjp koreksiIjp, KoreksiKlaim koreksiKlaim, ProduksiIjp produksiIjp, ProduksiKlaim produksiKlaim) {
-        ResponseEntity<?> penjurnalan = penjurnalanService.penjurnalanProcess(topic, message, koreksiIjp, koreksiKlaim, produksiIjp, produksiKlaim);
+    public void sendToService(String topic, Journal journal) throws JsonProcessingException {
+        ObjectWriter ow = new ObjectMapper().writer().withDefaultPrettyPrinter();
+        String message = ow.writeValueAsString(journal);
+        ResponseEntity<?> penjurnalan = penjurnalanService.penjurnalanProcess(topic, message, journal);
     }
 }
