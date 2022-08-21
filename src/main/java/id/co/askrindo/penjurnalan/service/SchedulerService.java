@@ -44,37 +44,44 @@ public class SchedulerService {
 		System.out.println("every 5 seconds maybe?");
 	}
 
-	public void hitBackFmsApi() throws IOException {
-		List<FinanceDataPosting> datas = financeDataPostingRepo.findByStatus(0);
-		for (FinanceDataPosting data: datas) {
+	public ResponseEntity<?> hitBackFmsApi() throws IOException {
+		try {
+			List<FinanceDataPosting> datas = financeDataPostingRepo.findByStatus(0);
+			for (FinanceDataPosting data: datas) {
 
-			data.setRetryCount(data.getRetryCount()+1);
-			data.setModifiedBy("h2h-kur-bri");
-			data.setModifiedDate(new Date());
-			FinanceDataPosting updateData = financeDataPostingRepo.save(data);
+				data.setRetryCount(data.getRetryCount()+1);
+				data.setModifiedBy("h2h-kur-bri");
+				data.setModifiedDate(new Date());
+				FinanceDataPosting updateData = financeDataPostingRepo.save(data);
 
-			//hit endpoint
-			ResponseEntity<String> responseFms = hitEndpointFMS(data.getDataJson());
+				//hit endpoint
+				ResponseEntity<String> responseFms = hitEndpointFMS(data.getDataJson());
 
-			if(responseFms != null) {
-				try {
-					JSONObject fmsResponse = new JSONObject(responseFms.getBody());
-				} catch (JSONException e) {
-					e.printStackTrace();
-				}
+				if(responseFms != null) {
+					try {
+						JSONObject fmsResponse = new JSONObject(responseFms.getBody());
+					} catch (JSONException e) {
+						e.printStackTrace();
+					}
 
-				if (responseFms.getStatusCodeValue() == 201) {
+					if (responseFms.getStatusCodeValue() == 201) {
+						data.setValueFromBackend(responseFms.toString());
+						data.setStatus(1);
+						FinanceDataPosting successData = financeDataPostingRepo.save(data);
+
+						//update klaim_kur/t_ijp
+					}
+				} else {
 					data.setValueFromBackend(responseFms.toString());
-					data.setStatus(1);
-					FinanceDataPosting successData = financeDataPostingRepo.save(data);
-
-					//update klaim_kur/t_ijp
+					data.setErrorMessage(responseFms.toString());
+					FinanceDataPosting failedData = financeDataPostingRepo.save(data);
 				}
-			} else {
-				data.setValueFromBackend(responseFms.toString());
-				data.setErrorMessage(responseFms.toString());
-				FinanceDataPosting failedData = financeDataPostingRepo.save(data);
 			}
+
+			return new ResponseEntity<>("PENJURNALAN UPDATED", HttpStatus.OK);
+		} catch (Exception e) {
+			logger.error("PENJURNALAN UPDATE, FAILED : "+e.getMessage());
+			return new ResponseEntity<>(e.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR);
 		}
 	}
 
