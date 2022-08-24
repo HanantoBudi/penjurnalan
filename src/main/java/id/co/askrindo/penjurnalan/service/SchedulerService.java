@@ -100,13 +100,13 @@ public class SchedulerService {
 
 		HttpEntity requestEntity = null;
 		ObjectMapper objectMapper = new ObjectMapper();
-		if (journalName.equalsIgnoreCase("")) {
+		if (journalName.equalsIgnoreCase("PRODUKSI IJP")) {
 			JournalProduksiIJP journalProduksiIJP = objectMapper.readValue(jsonData, JournalProduksiIJP.class);
 			requestEntity = new HttpEntity(journalProduksiIJP, headers);
-		} else if (journalName.equalsIgnoreCase("")) {
+		} else if (journalName.equalsIgnoreCase("PRODUKSI KLAIM")) {
 			JournalProduksiKlaim journalProduksiKlaim = objectMapper.readValue(jsonData, JournalProduksiKlaim.class);
 			requestEntity = new HttpEntity(journalProduksiKlaim, headers);
-		} else if (journalName.equalsIgnoreCase("")) {
+		} else if (journalName.equalsIgnoreCase("PELUNASAN IJP")) {
 			JournalPelunasanIJP journalPelunasanIJP = objectMapper.readValue(jsonData, JournalPelunasanIJP.class);
 			requestEntity = new HttpEntity(journalPelunasanIJP, headers);
 		}

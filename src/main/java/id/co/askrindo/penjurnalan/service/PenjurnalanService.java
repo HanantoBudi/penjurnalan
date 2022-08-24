@@ -147,7 +147,7 @@ public class PenjurnalanService {
             detail1.setId(null);
             detail1.setJournalId(null);
             detail1.setBranchId(null);
-            detail1.setBranchIdString("");//isi
+            detail1.setBranchIdString(penjaminanKur.get().getKodeCabangAsk());
             detail1.setAccountTypeIdString("Vendor");
             detail1.setAccountId(null);
             detail1.setAccountIdString("201110020161");
@@ -171,7 +171,7 @@ public class PenjurnalanService {
             detail2.setId(null);
             detail2.setJournalId(null);
             detail2.setBranchId(null);
-            detail2.setBranchIdString("");//isi
+            detail2.setBranchIdString(penjaminanKur.get().getKodeCabangAsk());
             detail2.setAccountTypeIdString("Ledger");
             detail2.setAccountId(null);
             detail2.setAccountIdString(null);
@@ -232,7 +232,7 @@ public class PenjurnalanService {
             JournalProduksiIJP journalProduksiIJP = new JournalProduksiIJP();
             journalProduksiIJP.setId(null);
             journalProduksiIJP.setBranchId(null);
-            journalProduksiIJP.setBranchIdString(""); //isi
+            journalProduksiIJP.setBranchIdString(penjaminanKur.get().getKodeCabangAsk());
             journalProduksiIJP.setDocumentTypeId(7L);
             journalProduksiIJP.setAccountingDate(dateJournalFormat.format(new Date()));
             journalProduksiIJP.setEntryDate(dateJournalFormat.format(new Date()));
@@ -256,7 +256,7 @@ public class PenjurnalanService {
             journalProduksiIJP.setPostingStatus("Posted");
             journalProduksiIJP.setPostedDate(dateJournalFormat.format(new Date()));
             journalProduksiIJP.setPostedByName("h2h-kur-bri");
-            journalProduksiIJP.setJournalNotes("");//isi
+            journalProduksiIJP.setJournalNotes("Polis : "+"noPolis"+", Nasabah : "+penjaminanKur.get().getNamaUker()+", Periode : "+penjaminanKur.get().getTanggalAwal().toString());
             journalProduksiIJP.setPaymentTypeId(null);
             journalProduksiIJP.setPaymentReferenceNumber(null);
             journalProduksiIJP.setReferenceNumber("");//isi

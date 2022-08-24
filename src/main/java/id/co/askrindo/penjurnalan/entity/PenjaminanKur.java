@@ -69,7 +69,7 @@ public class PenjaminanKur {
     private String alamat_debitur;
 
     @Column(name = "kode_pos")
-    private String kodeosPos;
+    private String kodePos;
 
     @Column(name = "tanggal_lahir")
     private Date tanggalLahir;
@@ -84,10 +84,10 @@ public class PenjaminanKur {
     private String noHp;
 
     @Column(name = "jenis_identitas")
-    private String jenis_identitas;
+    private String jenisIdentitas;
 
     @Column(name = "no_identitas")
-    private String no_identitas;
+    private String noIdentitas;
 
     @Column(name = "npwp")
     private String npwp;
