@@ -10,7 +10,7 @@ import java.util.List;
 @Setter
 @Getter
 @JsonNaming(PropertyNamingStrategy.SnakeCaseStrategy.class)
-public class Journal {
+public class JournalProduksiIJP {
     private String Id;
     private String branchId;
     private String branchIdString;
@@ -44,11 +44,11 @@ public class Journal {
     private Long journalStatusId;
     private String journalNotation;
     private Long budgetItemId;
-    private List<JournalDetailDTO> journalDetailDTOS;
+    private List<JournalProduksiIJPDetailDTO> journalDetailDTOs;
     private String summaryDetailId;
     private String accountIdString;
     private String accountTypeIdString;
-    private JournalExtended journalExtended;
+    private JournalProduksiIJPExtended journalExtended;
     private String vaNumberInternal;
     private String dataId;
     private String vaNumbers;

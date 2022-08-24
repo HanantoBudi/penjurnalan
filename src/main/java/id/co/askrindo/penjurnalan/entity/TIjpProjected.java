@@ -72,6 +72,12 @@ public class TIjpProjected {
     @Column(name = "id_covering_validation", columnDefinition="uniqueidentifier")
     private String idCoveringValidation;
 
+    @Column(name = "no_jurnal", length = 50)
+    private String noJurnal;
+
+    @Column(name = "tanggal_posting")
+    private Date tanggalPosting;
+
     @Column(name = "created_date")
     @CreatedDate
     private Date createdDate;

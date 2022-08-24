@@ -1,6 +1,14 @@
 package id.co.askrindo.penjurnalan.model;
 
-public class JournalDetailDTO {
+import com.fasterxml.jackson.databind.PropertyNamingStrategy;
+import com.fasterxml.jackson.databind.annotation.JsonNaming;
+import lombok.Getter;
+import lombok.Setter;
+
+@Setter
+@Getter
+@JsonNaming(PropertyNamingStrategy.SnakeCaseStrategy.class)
+public class JournalProduksiKlaimDetailDTO {
     private String Id;
     private String journalId;
     private String branchId;

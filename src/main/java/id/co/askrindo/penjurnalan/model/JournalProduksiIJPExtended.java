@@ -1,6 +1,14 @@
 package id.co.askrindo.penjurnalan.model;
 
-public class JournalExtended {
+import com.fasterxml.jackson.databind.PropertyNamingStrategy;
+import com.fasterxml.jackson.databind.annotation.JsonNaming;
+import lombok.Getter;
+import lombok.Setter;
+
+@Setter
+@Getter
+@JsonNaming(PropertyNamingStrategy.SnakeCaseStrategy.class)
+public class JournalProduksiIJPExtended {
     private String id;
     private String journalID;
     private String kodeCob;

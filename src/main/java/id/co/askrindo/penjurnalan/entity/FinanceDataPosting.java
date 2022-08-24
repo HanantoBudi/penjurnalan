@@ -33,6 +33,9 @@ public class FinanceDataPosting {
     @Column(name = "data_json")
     private String dataJson;
 
+    @Column(name = "journal_name", length = 30)
+    private String journalName;
+
     @Column(name = "status")
     private Integer status;
 
