@@ -27,10 +27,10 @@ public class PenjaminanKurSpr {
     private String id;
 
     @Column(name = "id_penjaminan", columnDefinition="uniqueidentifier")
-    private String id_penjaminan;
+    private String idPenjaminan;
 
     @Column(name = "line_no")
-    private Integer line_no;
+    private Integer lineNo;
 
     @Column(name = "no_rekening_spr")
     private String noRekeningSpr;

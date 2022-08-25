@@ -40,12 +40,19 @@ public class PenjurnalanService {
     @Autowired
     private PenjaminanKurSprRepository penjaminanKurSprRepo;
 
+    @Autowired
+    private ProductAcsRepository productAcsRepo;
+
+    @Autowired
+    private TCoveringValidationRepository tCoveringValidationRepo;
+
     private RestTemplate restTemplate = new RestTemplate();
 
     @Autowired
     private Environment env;
 
     DateFormat dateJournalFormat = new SimpleDateFormat("dd/mm/yyyy");
+    DateFormat dateFullFormat = new SimpleDateFormat("dd MMMM yyyy");
     DateFormat monthJournalFormat = new SimpleDateFormat("mm");
     DateFormat yearJournalFormat = new SimpleDateFormat("yyyy");
 
@@ -141,6 +148,24 @@ public class PenjurnalanService {
             Optional<TIjpProjected> tIjpProjected = tIjpProjectedRepo.findById(uuid.toString());
             Optional<PenjaminanKur> penjaminanKur = penjaminanKurRepo.findByNoSertifikat(tIjpProjected.get().getNoRekeningPinjaman());
             Optional<PenjaminanKurSpr> penjaminanKurSpr = penjaminanKurSprRepo.findByNoSertifikatSpr(tIjpProjected.get().getNoRekeningPinjaman());
+            Optional<ProductAcs> productAcs = null;
+            if (penjaminanKur.isPresent())
+                productAcs = productAcsRepo.findByJenisKreditAndJenisKur(penjaminanKur.get().getJenisKredit(), penjaminanKur.get().getJenisKur());
+
+            String idPenjaminan = (penjaminanKurSpr != null) ? penjaminanKurSpr.get().getIdPenjaminan() : "";
+            String noPolis = (penjaminanKurSpr != null) ? penjaminanKurSpr.get().getNoSertifikatSpr() : penjaminanKur.get().getNoSertifikat();
+            String namaUker = (penjaminanKurSpr != null) ? "" : penjaminanKur.get().getNamaUker();
+            String jwkAwal = (penjaminanKurSpr != null) ? dateJournalFormat.format(penjaminanKurSpr.get().getTanggalAwalSpr()) : dateJournalFormat.format(penjaminanKur.get().getTanggalAwal());
+            String jwkAkhir = (penjaminanKurSpr != null) ? dateJournalFormat.format(penjaminanKurSpr.get().getTanggalAkhirSpr()) : dateJournalFormat.format(penjaminanKur.get().getTanggalAkhir());
+            String kodeProduk = (productAcs.isPresent()) ? productAcs.get().getProductId() : "";
+            String namaProduk = (productAcs.isPresent()) ? productAcs.get().getProductName() : "";
+            String produk = kodeProduk+" "+namaProduk;
+            String tanggalTerbitPolis = dateJournalFormat.format(tIjpProjected.get().getTanggalProduksi());
+            String debitur = (penjaminanKurSpr != null) ? "" : penjaminanKur.get().getNamaDebitur();
+            String noRekeningPinjaman = tIjpProjected.get().getNoRekeningPinjaman();
+            String namaTertanggung = "BANK RAKYAT INDONESIA, UKER : "+namaUker+", DEBITUR : "+debitur;
+            Long plafond =  (penjaminanKurSpr != null) ? penjaminanKurSpr.get().getPlafonSpr().longValue() : penjaminanKur.get().getPlafonKredit().longValue();
+            String journalNotes = "Polis : "+noPolis+", Nasabah : "+namaUker+", Periode : "+jwkAwal+"-"+jwkAkhir+", Produk : "+produk+", Debitur : "+debitur+", No Rekening Pinjaman : "+noRekeningPinjaman;
 
             //========================================================
             JournalProduksiIJPDetailDTO detail1 = new JournalProduksiIJPDetailDTO();
@@ -162,7 +187,7 @@ public class PenjurnalanService {
             detail1.setAccountingCurrencyCode("IDR");
             detail1.setAccountingAmountDebit(null);//isi
             detail1.setAccountingAmountCredit((double) 0);
-            detail1.setJournalDetailNotes("");//isi
+            detail1.setJournalDetailNotes(journalNotes);
             detail1.setSettledTransactionId(null);
             detail1.setTaxJournalDetailId(null);
             detail1.setTaxReclassStatus(0L);
@@ -186,7 +211,7 @@ public class PenjurnalanService {
             detail2.setAccountingCurrencyCode("IDR");
             detail2.setAccountingAmountDebit((double) 0);
             detail2.setAccountingAmountCredit(null);//isi
-            detail2.setJournalDetailNotes("");//isi
+            detail2.setJournalDetailNotes(journalNotes);
             detail2.setSettledTransactionId(null);
             detail2.setTaxJournalDetailId(null);
             detail2.setTaxReclassStatus(0L);
@@ -200,19 +225,19 @@ public class PenjurnalanService {
             JournalProduksiIJPExtended journalProduksiIJPExtended = new JournalProduksiIJPExtended();
             journalProduksiIJPExtended.setId(null);
             journalProduksiIJPExtended.setJournalID(null);
-            journalProduksiIJPExtended.setKodeCob("");//isi
-            journalProduksiIJPExtended.setNamaCob("");//isi
-            journalProduksiIJPExtended.setNomorPolis("");//isi
-            journalProduksiIJPExtended.setTanggalTerbitPolis("");//isi
+            journalProduksiIJPExtended.setKodeCob(kodeProduk);
+            journalProduksiIJPExtended.setNamaCob(namaProduk);
+            journalProduksiIJPExtended.setNomorPolis(noPolis);
+            journalProduksiIJPExtended.setTanggalTerbitPolis(tanggalTerbitPolis);
             journalProduksiIJPExtended.setKodeBusinessPartner(null);
             journalProduksiIJPExtended.setNamaBusinessPartner(null);
-            journalProduksiIJPExtended.setKodeTertanggung("");//isi
-            journalProduksiIJPExtended.setNamaTertanggung("");//isi
+            journalProduksiIJPExtended.setKodeTertanggung("201110020161");
+            journalProduksiIJPExtended.setNamaTertanggung(namaTertanggung);
             journalProduksiIJPExtended.setReinsuranceFacultativeSlip(null);
-            journalProduksiIJPExtended.setPeriodeAwal("");//isi
-            journalProduksiIJPExtended.setPeriodeAkhir("");//isi
+            journalProduksiIJPExtended.setPeriodeAwal(jwkAwal);
+            journalProduksiIJPExtended.setPeriodeAkhir(jwkAkhir);
             journalProduksiIJPExtended.setCurrencyCode("IDR");
-            journalProduksiIJPExtended.setSumInsured(null);//isi
+            journalProduksiIJPExtended.setSumInsured(plafond);
             journalProduksiIJPExtended.setDueDate("");//isi
             journalProduksiIJPExtended.setGrossPremium(null);//isi
             journalProduksiIJPExtended.setDiscount(0L);
@@ -223,8 +248,8 @@ public class PenjurnalanService {
             journalProduksiIJPExtended.setPpn(0L);
             journalProduksiIJPExtended.setCreatorIPAddress(null);
             journalProduksiIJPExtended.setModifiedByIPAddress(null);
-            journalProduksiIJPExtended.setDataID("");//isi
-            journalProduksiIJPExtended.setSppaNo("");//isi
+            journalProduksiIJPExtended.setDataID(idPenjaminan);
+            journalProduksiIJPExtended.setSppaNo(noPolis);
             journalProduksiIJPExtended.setDataSource(2L);
             //========================================================
 
@@ -256,10 +281,10 @@ public class PenjurnalanService {
             journalProduksiIJP.setPostingStatus("Posted");
             journalProduksiIJP.setPostedDate(dateJournalFormat.format(new Date()));
             journalProduksiIJP.setPostedByName("h2h-kur-bri");
-            journalProduksiIJP.setJournalNotes("Polis : "+"noPolis"+", Nasabah : "+penjaminanKur.get().getNamaUker()+", Periode : "+penjaminanKur.get().getTanggalAwal().toString());
+            journalProduksiIJP.setJournalNotes(journalNotes);
             journalProduksiIJP.setPaymentTypeId(null);
             journalProduksiIJP.setPaymentReferenceNumber(null);
-            journalProduksiIJP.setReferenceNumber("");//isi
+            journalProduksiIJP.setReferenceNumber(noPolis);
             journalProduksiIJP.setJournalStatusId(8L);
             journalProduksiIJP.setJournalNotation(null);
             journalProduksiIJP.setBudgetItemId(null);
@@ -267,7 +292,7 @@ public class PenjurnalanService {
             journalProduksiIJP.setSummaryDetailId("AOS_BRISURF#"+tIjpProjected.get().getId());
             journalProduksiIJP.setAccountIdString(null);
             journalProduksiIJP.setAccountTypeIdString(null);
-            journalProduksiIJP.setJournalExtended(journalProduksiIJPExtended);//isi
+            journalProduksiIJP.setJournalExtended(journalProduksiIJPExtended);
             journalProduksiIJP.setVaNumberInternal(null);
             journalProduksiIJP.setDataId("");//isi
             journalProduksiIJP.setVaNumbers(null);
@@ -286,6 +311,17 @@ public class PenjurnalanService {
             Optional<TIjpProjected> tIjpProjected = tIjpProjectedRepo.findById(uuid.toString());
             Optional<PenjaminanKur> penjaminanKur = penjaminanKurRepo.findByNoSertifikat(tIjpProjected.get().getNoRekeningPinjaman());
             Optional<PenjaminanKurSpr> penjaminanKurSpr = penjaminanKurSprRepo.findByNoSertifikatSpr(tIjpProjected.get().getNoRekeningPinjaman());
+
+            String idPenjaminan = (penjaminanKurSpr != null) ? penjaminanKurSpr.get().getIdPenjaminan() : "";
+            String noPolis = (penjaminanKurSpr != null) ? penjaminanKurSpr.get().getNoSertifikatSpr() : penjaminanKur.get().getNoSertifikat();
+            Optional<TCoveringValidation> tCoveringValidation = tCoveringValidationRepo.findById(tIjpProjected.get().getIdCoveringValidation());
+            String tanggalCoveringFlag = "";
+            String remark = "";
+            if (tCoveringValidation.isPresent()) {
+                tanggalCoveringFlag = dateFullFormat.format(tCoveringValidation.get().getCreatedDate());
+                remark = tCoveringValidation.get().getRemark();
+            }
+            String journalNotes = "Pembayaran IJP KUR GEN 2 Bank BRI "+tanggalCoveringFlag+" R/C Cabang Cikini";
 
             //========================================================
             JournalPelunasanIJPDetailDTO detail1 = new JournalPelunasanIJPDetailDTO();
@@ -307,7 +343,7 @@ public class PenjurnalanService {
             detail1.setAccountingCurrencyCode("IDR");
             detail1.setAccountingAmountDebit((double) 0);
             detail1.setAccountingAmountCredit(null);//isi
-            detail1.setJournalDetailNotes("");//isi
+            detail1.setJournalDetailNotes(journalNotes);
             detail1.setSettledTransactionId(null);
             detail1.setTaxJournalDetailId(null);
             detail1.setTaxReclassStatus(0L);
@@ -345,10 +381,10 @@ public class PenjurnalanService {
             journalPelunasanIJP.setPostingStatus("Posted");
             journalPelunasanIJP.setPostedDate(dateJournalFormat.format(new Date()));
             journalPelunasanIJP.setPostedByName("h2h-kur-bri");
-            journalPelunasanIJP.setJournalNotes("");//isi
+            journalPelunasanIJP.setJournalNotes(journalNotes);
             journalPelunasanIJP.setPaymentTypeId(4L);
-            journalPelunasanIJP.setPaymentReferenceNumber(null);//isi
-            journalPelunasanIJP.setReferenceNumber("");//isi
+            journalPelunasanIJP.setPaymentReferenceNumber(remark);
+            journalPelunasanIJP.setReferenceNumber(noPolis);
             journalPelunasanIJP.setJournalStatusId(8L);
             journalPelunasanIJP.setJournalNotation(null);
             journalPelunasanIJP.setBudgetItemId(null);
@@ -356,7 +392,7 @@ public class PenjurnalanService {
             journalPelunasanIJP.setSummaryDetailId("AOS_BRISURF#"+tIjpProjected.get().getId());
             journalPelunasanIJP.setAccountIdString(null);
             journalPelunasanIJP.setAccountTypeIdString("Bank");
-            journalPelunasanIJP.setDataId("");//isi
+            journalPelunasanIJP.setDataId(idPenjaminan);
             //========================================================
 
             return journalPelunasanIJP;
@@ -369,13 +405,33 @@ public class PenjurnalanService {
     private JournalProduksiKlaim mappingProduksiKlaim (String topic, UUID uuid) {
         try {
             Optional<KlaimKur> klaimKur = klaimKurRepo.findById(uuid.toString());
+            Optional<PenjaminanKur> penjaminanKur = penjaminanKurRepo.findByNoSertifikat(klaimKur.get().getNoRekening());
+            Optional<PenjaminanKurSpr> penjaminanKurSpr = penjaminanKurSprRepo.findByNoSertifikatSpr(klaimKur.get().getNoRekening());
+            Optional<ProductAcs> productAcs = null;
+            if (penjaminanKur.isPresent())
+                productAcs = productAcsRepo.findByJenisKreditAndJenisKur(penjaminanKur.get().getJenisKredit(), penjaminanKur.get().getJenisKur());
+
+            String idPenjaminan = (penjaminanKurSpr != null) ? penjaminanKurSpr.get().getIdPenjaminan() : "";
+            String noPolis = (penjaminanKurSpr != null) ? penjaminanKurSpr.get().getNoSertifikatSpr() : penjaminanKur.get().getNoSertifikat();
+            String namaUker = (penjaminanKurSpr != null) ? "" : penjaminanKur.get().getNamaUker();
+            String jwkAwal = (penjaminanKurSpr != null) ? dateJournalFormat.format(penjaminanKurSpr.get().getTanggalAwalSpr()) : dateJournalFormat.format(penjaminanKur.get().getTanggalAwal());
+            String jwkAkhir = (penjaminanKurSpr != null) ? dateJournalFormat.format(penjaminanKurSpr.get().getTanggalAkhirSpr()) : dateJournalFormat.format(penjaminanKur.get().getTanggalAkhir());
+            String kodeProduk = (productAcs.isPresent()) ? productAcs.get().getProductId() : "";
+            String namaProduk = (productAcs.isPresent()) ? productAcs.get().getProductName() : "";
+            String produk = kodeProduk+" "+namaProduk;
+            String tanggalTerbitPolis = dateJournalFormat.format(klaimKur.get().getTanggalPosting());
+            String debitur = (penjaminanKurSpr != null) ? "" : penjaminanKur.get().getNamaDebitur();
+            String noRekeningPinjaman = klaimKur.get().getNoRekening();
+            String namaTertanggung = "BANK RAKYAT INDONESIA, UKER : "+namaUker+", DEBITUR : "+debitur;
+            Long plafond =  (penjaminanKurSpr != null) ? penjaminanKurSpr.get().getPlafonSpr().longValue() : penjaminanKur.get().getPlafonKredit().longValue();
+            String journalNotes = "Nomor LPK : "+klaimKur.get().getNoKlaim()+", Polis : "+noPolis+", Nasabah : "+namaUker+", Periode : "+jwkAwal+"-"+jwkAkhir+", Produk : "+produk+", Debitur : "+debitur+", No Rekening Pinjaman : "+noRekeningPinjaman;
 
             //========================================================
             JournalProduksiKlaimDetailDTO detail1 = new JournalProduksiKlaimDetailDTO();
             detail1.setId(null);
             detail1.setJournalId(null);
             detail1.setBranchId(null);
-            detail1.setBranchIdString("");//isi
+            detail1.setBranchIdString(penjaminanKur.get().getKodeCabangAsk());
             detail1.setAccountTypeIdString("Ledger");
             detail1.setAccountId(null);
             detail1.setAccountIdString("201110020161");
@@ -399,7 +455,7 @@ public class PenjurnalanService {
             detail2.setId(null);
             detail2.setJournalId(null);
             detail2.setBranchId(null);
-            detail2.setBranchIdString("");//isi
+            detail2.setBranchIdString(penjaminanKur.get().getKodeCabangAsk());
             detail2.setAccountTypeIdString("Vendor");
             detail2.setAccountId(null);
             detail2.setAccountIdString(null);
@@ -414,7 +470,7 @@ public class PenjurnalanService {
             detail2.setAccountingCurrencyCode("IDR");
             detail2.setAccountingAmountDebit((double) 0);
             detail2.setAccountingAmountCredit(null);//isi
-            detail2.setJournalDetailNotes("");//isi
+            detail2.setJournalDetailNotes(journalNotes);
             detail2.setSettledTransactionId(null);
             detail2.setTaxJournalDetailId(null);
             detail2.setTaxReclassStatus(0L);
@@ -428,19 +484,19 @@ public class PenjurnalanService {
             JournalProduksiKlaimExtended journalProduksiKlaimExtended = new JournalProduksiKlaimExtended();
             journalProduksiKlaimExtended.setId(null);
             journalProduksiKlaimExtended.setJournalID(null);
-            journalProduksiKlaimExtended.setKodeCob("");//isi
-            journalProduksiKlaimExtended.setNamaCob("");//isi
-            journalProduksiKlaimExtended.setNomorPolis("");//isi
-            journalProduksiKlaimExtended.setTanggalTerbitPolis("");//isi
+            journalProduksiKlaimExtended.setKodeCob(kodeProduk);
+            journalProduksiKlaimExtended.setNamaCob(namaProduk);
+            journalProduksiKlaimExtended.setNomorPolis(noPolis);
+            journalProduksiKlaimExtended.setTanggalTerbitPolis(tanggalTerbitPolis);
             journalProduksiKlaimExtended.setKodeBusinessPartner(null);
             journalProduksiKlaimExtended.setNamaBusinessPartner(null);
             journalProduksiKlaimExtended.setKodeTertanggung("201110020161");
-            journalProduksiKlaimExtended.setNamaTertanggung("");//isi
+            journalProduksiKlaimExtended.setNamaTertanggung(namaTertanggung);
             journalProduksiKlaimExtended.setReinsuranceFacultativeSlip(null);
-            journalProduksiKlaimExtended.setPeriodeAwal("");//isi
-            journalProduksiKlaimExtended.setPeriodeAkhir("");//isi
+            journalProduksiKlaimExtended.setPeriodeAwal(jwkAwal);
+            journalProduksiKlaimExtended.setPeriodeAkhir(jwkAkhir);
             journalProduksiKlaimExtended.setCurrencyCode("IDR");
-            journalProduksiKlaimExtended.setSumInsured(null);//isi
+            journalProduksiKlaimExtended.setSumInsured(plafond);
             journalProduksiKlaimExtended.setDueDate("");//isi
             journalProduksiKlaimExtended.setGrossPremium(null);//isi
             journalProduksiKlaimExtended.setDiscount(0L);
@@ -451,7 +507,7 @@ public class PenjurnalanService {
             journalProduksiKlaimExtended.setPpn(0L);
             journalProduksiKlaimExtended.setCreatorIPAddress(null);
             journalProduksiKlaimExtended.setModifiedByIPAddress(null);
-            journalProduksiKlaimExtended.setDataID("");//isi
+            journalProduksiKlaimExtended.setDataID(klaimKur.get().getId());
             journalProduksiKlaimExtended.setSppaNo(null);
             journalProduksiKlaimExtended.setDataSource(2L);
             //========================================================
@@ -460,7 +516,7 @@ public class PenjurnalanService {
             JournalProduksiKlaim journalProduksiKlaim = new JournalProduksiKlaim();
             journalProduksiKlaim.setId(null);
             journalProduksiKlaim.setBranchId(null);
-            journalProduksiKlaim.setBranchIdString(""); //isi
+            journalProduksiKlaim.setBranchIdString(penjaminanKur.get().getKodeCabangAsk());
             journalProduksiKlaim.setDocumentTypeId(7L);
             journalProduksiKlaim.setAccountingDate(dateJournalFormat.format(new Date()));
             journalProduksiKlaim.setEntryDate(dateJournalFormat.format(new Date()));
@@ -484,18 +540,18 @@ public class PenjurnalanService {
             journalProduksiKlaim.setPostingStatus("Posted");
             journalProduksiKlaim.setPostedDate(dateJournalFormat.format(new Date()));
             journalProduksiKlaim.setPostedByName("h2h-kur-bri");
-            journalProduksiKlaim.setJournalNotes("");//isi
+            journalProduksiKlaim.setJournalNotes(journalNotes);
             journalProduksiKlaim.setPaymentTypeId(null);
             journalProduksiKlaim.setPaymentReferenceNumber(null);
-            journalProduksiKlaim.setReferenceNumber("");//isi
+            journalProduksiKlaim.setReferenceNumber(klaimKur.get().getNoKlaim());
             journalProduksiKlaim.setJournalStatusId(8L);
             journalProduksiKlaim.setJournalNotation(null);
             journalProduksiKlaim.setBudgetItemId(null);
             journalProduksiKlaim.setJournalDetailDTOs(details);
-            journalProduksiKlaim.setSummaryDetailId("AOS_BRISURF#");//isi
+            journalProduksiKlaim.setSummaryDetailId("AOS_BRISURF#"+klaimKur.get().getId());
             journalProduksiKlaim.setAccountIdString(null);
             journalProduksiKlaim.setAccountTypeIdString(null);
-            journalProduksiKlaim.setJournalExtended(journalProduksiKlaimExtended);//isi
+            journalProduksiKlaim.setJournalExtended(journalProduksiKlaimExtended);
             journalProduksiKlaim.setVaNumberInternal(null);
             journalProduksiKlaim.setDataId("");//isi
             journalProduksiKlaim.setVaNumbers(null);
