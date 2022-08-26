@@ -114,7 +114,12 @@ public class PenjurnalanService {
             if(responseFms != null) {
                 try {
                     JSONObject fmsResponse = new JSONObject(responseFms.getBody());
-                    noJournal = fmsResponse.getString(journalProduksiIJP.getSummaryDetailId());
+                    if (topic.equalsIgnoreCase("PRODUKSI IJP"))
+                        noJournal = fmsResponse.getString(journalProduksiIJP.getSummaryDetailId());
+                    else if (topic.equalsIgnoreCase("PELUNASAN IJP"))
+                        noJournal = fmsResponse.getString(journalPelunasanIJP.getSummaryDetailId());
+                    else if (topic.equalsIgnoreCase("PRODUKSI KLAIM"))
+                        noJournal = fmsResponse.getString(journalProduksiKlaim.getSummaryDetailId());
                 } catch (JSONException e) {
                     e.printStackTrace();
                 }
@@ -135,7 +140,7 @@ public class PenjurnalanService {
                 data.setValueFromBackend(responseFms.toString());
                 data.setErrorMessage(responseFms.toString());
                 FinanceDataPosting updateData = financeDataPostingRepo.save(data);
-                return new ResponseEntity<>("FAILED HIT FMS API", HttpStatus.EXPECTATION_FAILED);
+                return new ResponseEntity<>("FAILED HIT FMS API", HttpStatus.OK);
             }
         } catch (Exception e) {
             logger.error("PENJURNALAN CREATE, FAILED : "+e.getMessage());
@@ -149,30 +154,56 @@ public class PenjurnalanService {
             Optional<PenjaminanKur> penjaminanKur = penjaminanKurRepo.findByNoSertifikat(tIjpProjected.get().getNoRekeningPinjaman());
             Optional<PenjaminanKurSpr> penjaminanKurSpr = penjaminanKurSprRepo.findByNoSertifikatSpr(tIjpProjected.get().getNoRekeningPinjaman());
             Optional<ProductAcs> productAcs = null;
-            if (penjaminanKur.isPresent())
-                productAcs = productAcsRepo.findByJenisKreditAndJenisKur(penjaminanKur.get().getJenisKredit(), penjaminanKur.get().getJenisKur());
 
-            String idPenjaminan = (penjaminanKurSpr != null) ? penjaminanKurSpr.get().getIdPenjaminan() : "";
-            String noPolis = (penjaminanKurSpr != null) ? penjaminanKurSpr.get().getNoSertifikatSpr() : penjaminanKur.get().getNoSertifikat();
-            String namaUker = (penjaminanKurSpr != null) ? "" : penjaminanKur.get().getNamaUker();
-            String jwkAwal = (penjaminanKurSpr != null) ? dateJournalFormat.format(penjaminanKurSpr.get().getTanggalAwalSpr()) : dateJournalFormat.format(penjaminanKur.get().getTanggalAwal());
-            String jwkAkhir = (penjaminanKurSpr != null) ? dateJournalFormat.format(penjaminanKurSpr.get().getTanggalAkhirSpr()) : dateJournalFormat.format(penjaminanKur.get().getTanggalAkhir());
-            String kodeProduk = (productAcs.isPresent()) ? productAcs.get().getProductId() : "";
-            String namaProduk = (productAcs.isPresent()) ? productAcs.get().getProductName() : "";
-            String produk = kodeProduk+" "+namaProduk;
+            String idPenjaminan = "";
+            String noPolis = "";
+            String namaUker = "";
+            String jwkAwal = "";
+            String jwkAkhir = "";
+            String kodeProduk = "";
+            String namaProduk = "";
             String tanggalTerbitPolis = dateJournalFormat.format(tIjpProjected.get().getTanggalProduksi());
-            String debitur = (penjaminanKurSpr != null) ? "" : penjaminanKur.get().getNamaDebitur();
+            String debitur = "";
             String noRekeningPinjaman = tIjpProjected.get().getNoRekeningPinjaman();
+            Long plafond = null;
+            String branchIdString = (penjaminanKur.isPresent()) ? penjaminanKur.get().getKodeCabangAsk() : "";
+
+            if (penjaminanKurSpr.isPresent()) {
+                idPenjaminan = penjaminanKurSpr.get().getIdPenjaminan();
+                noPolis = penjaminanKurSpr.get().getNoSertifikatSpr();
+                namaUker = "";
+                jwkAwal = dateJournalFormat.format(penjaminanKurSpr.get().getTanggalAwalSpr());
+                jwkAkhir = dateJournalFormat.format(penjaminanKurSpr.get().getTanggalAkhirSpr());
+                debitur = "";
+                plafond =  penjaminanKurSpr.get().getPlafonSpr().longValue();
+            } else {
+                if (penjaminanKur.isPresent()) {
+                    productAcs = productAcsRepo.findByJenisKreditAndJenisKur(penjaminanKur.get().getJenisKredit(), penjaminanKur.get().getJenisKur());
+                    kodeProduk = productAcs.get().getProductId();
+                    namaProduk = productAcs.get().getProductName();
+                    idPenjaminan = penjaminanKur.get().getId();
+                    noPolis = penjaminanKur.get().getNoSertifikat();
+                    namaUker = penjaminanKur.get().getNamaUker();
+                    jwkAwal = dateJournalFormat.format(penjaminanKur.get().getTanggalAwal());
+                    jwkAkhir = dateJournalFormat.format(penjaminanKur.get().getTanggalAkhir());
+                    debitur = penjaminanKur.get().getNamaDebitur();
+                    plafond = penjaminanKur.get().getPlafonKredit().longValue();
+                }
+            }
+
+            String produk = kodeProduk+" "+namaProduk;
             String namaTertanggung = "BANK RAKYAT INDONESIA, UKER : "+namaUker+", DEBITUR : "+debitur;
-            Long plafond =  (penjaminanKurSpr != null) ? penjaminanKurSpr.get().getPlafonSpr().longValue() : penjaminanKur.get().getPlafonKredit().longValue();
             String journalNotes = "Polis : "+noPolis+", Nasabah : "+namaUker+", Periode : "+jwkAwal+"-"+jwkAkhir+", Produk : "+produk+", Debitur : "+debitur+", No Rekening Pinjaman : "+noRekeningPinjaman;
+            String dueDate = (penjaminanKur.isPresent()) ? dateJournalFormat.format(penjaminanKur.get().getTglApproveSpv()) : "";
+            Double grossPremium = tIjpProjected.get().getNominalIjp().doubleValue();
+            Double transactionAccountingAmount = tIjpProjected.get().getNominalIjp().doubleValue();
 
             //========================================================
             JournalProduksiIJPDetailDTO detail1 = new JournalProduksiIJPDetailDTO();
             detail1.setId(null);
             detail1.setJournalId(null);
             detail1.setBranchId(null);
-            detail1.setBranchIdString(penjaminanKur.get().getKodeCabangAsk());
+            detail1.setBranchIdString(branchIdString);
             detail1.setAccountTypeIdString("Vendor");
             detail1.setAccountId(null);
             detail1.setAccountIdString("201110020161");
@@ -181,11 +212,11 @@ public class PenjurnalanService {
             detail1.setMainAccountId("1.02.01.01.001.002");
             detail1.setDepartmentId(2L);
             detail1.setJournalDetailsTransactionCurrencyCode("IDR");
-            detail1.setTransactionAmountDebit(null);//isi
+            detail1.setTransactionAmountDebit(transactionAccountingAmount);
             detail1.setTransactionAmountCredit((double) 0);
             detail1.setExchangeRate(null);
             detail1.setAccountingCurrencyCode("IDR");
-            detail1.setAccountingAmountDebit(null);//isi
+            detail1.setAccountingAmountDebit(transactionAccountingAmount);
             detail1.setAccountingAmountCredit((double) 0);
             detail1.setJournalDetailNotes(journalNotes);
             detail1.setSettledTransactionId(null);
@@ -196,7 +227,7 @@ public class PenjurnalanService {
             detail2.setId(null);
             detail2.setJournalId(null);
             detail2.setBranchId(null);
-            detail2.setBranchIdString(penjaminanKur.get().getKodeCabangAsk());
+            detail2.setBranchIdString(branchIdString);
             detail2.setAccountTypeIdString("Ledger");
             detail2.setAccountId(null);
             detail2.setAccountIdString(null);
@@ -206,11 +237,11 @@ public class PenjurnalanService {
             detail2.setDepartmentId(2L);
             detail2.setJournalDetailsTransactionCurrencyCode("IDR");
             detail2.setTransactionAmountDebit((double) 0);
-            detail2.setTransactionAmountCredit(null);//isi
+            detail2.setTransactionAmountCredit(transactionAccountingAmount);
             detail2.setExchangeRate(null);
             detail2.setAccountingCurrencyCode("IDR");
             detail2.setAccountingAmountDebit((double) 0);
-            detail2.setAccountingAmountCredit(null);//isi
+            detail2.setAccountingAmountCredit(transactionAccountingAmount);
             detail2.setJournalDetailNotes(journalNotes);
             detail2.setSettledTransactionId(null);
             detail2.setTaxJournalDetailId(null);
@@ -238,8 +269,8 @@ public class PenjurnalanService {
             journalProduksiIJPExtended.setPeriodeAkhir(jwkAkhir);
             journalProduksiIJPExtended.setCurrencyCode("IDR");
             journalProduksiIJPExtended.setSumInsured(plafond);
-            journalProduksiIJPExtended.setDueDate("");//isi
-            journalProduksiIJPExtended.setGrossPremium(null);//isi
+            journalProduksiIJPExtended.setDueDate(dueDate);
+            journalProduksiIJPExtended.setGrossPremium(grossPremium);
             journalProduksiIJPExtended.setDiscount(0L);
             journalProduksiIJPExtended.setPolicyFee(null);
             journalProduksiIJPExtended.setStampDuty(null);
@@ -257,7 +288,7 @@ public class PenjurnalanService {
             JournalProduksiIJP journalProduksiIJP = new JournalProduksiIJP();
             journalProduksiIJP.setId(null);
             journalProduksiIJP.setBranchId(null);
-            journalProduksiIJP.setBranchIdString(penjaminanKur.get().getKodeCabangAsk());
+            journalProduksiIJP.setBranchIdString(branchIdString);
             journalProduksiIJP.setDocumentTypeId(7L);
             journalProduksiIJP.setAccountingDate(dateJournalFormat.format(new Date()));
             journalProduksiIJP.setEntryDate(dateJournalFormat.format(new Date()));
@@ -294,7 +325,7 @@ public class PenjurnalanService {
             journalProduksiIJP.setAccountTypeIdString(null);
             journalProduksiIJP.setJournalExtended(journalProduksiIJPExtended);
             journalProduksiIJP.setVaNumberInternal(null);
-            journalProduksiIJP.setDataId("");//isi
+            journalProduksiIJP.setDataId("");
             journalProduksiIJP.setVaNumbers(null);
             //========================================================
             
@@ -311,9 +342,21 @@ public class PenjurnalanService {
             Optional<TIjpProjected> tIjpProjected = tIjpProjectedRepo.findById(uuid.toString());
             Optional<PenjaminanKur> penjaminanKur = penjaminanKurRepo.findByNoSertifikat(tIjpProjected.get().getNoRekeningPinjaman());
             Optional<PenjaminanKurSpr> penjaminanKurSpr = penjaminanKurSprRepo.findByNoSertifikatSpr(tIjpProjected.get().getNoRekeningPinjaman());
+            Double transactionAccountingAmount = tIjpProjected.get().getNominalIjp().doubleValue();
 
-            String idPenjaminan = (penjaminanKurSpr != null) ? penjaminanKurSpr.get().getIdPenjaminan() : "";
-            String noPolis = (penjaminanKurSpr != null) ? penjaminanKurSpr.get().getNoSertifikatSpr() : penjaminanKur.get().getNoSertifikat();
+            String idPenjaminan = "";
+            String noPolis = "";
+
+            if (penjaminanKurSpr.isPresent()) {
+                idPenjaminan = penjaminanKurSpr.get().getIdPenjaminan();
+                noPolis = penjaminanKurSpr.get().getNoSertifikatSpr();
+            } else {
+                if (penjaminanKur.isPresent()) {
+                    idPenjaminan = penjaminanKur.get().getId();
+                    noPolis = penjaminanKur.get().getNoSertifikat();
+                }
+            }
+
             Optional<TCoveringValidation> tCoveringValidation = tCoveringValidationRepo.findById(tIjpProjected.get().getIdCoveringValidation());
             String tanggalCoveringFlag = "";
             String remark = "";
@@ -334,15 +377,15 @@ public class PenjurnalanService {
             detail1.setAccountIdString(null);
             detail1.setJournalDetailsTransactionSourceId(null);
             detail1.setAccountCashBankId(null);
-            detail1.setMainAccountId("1.02.01.01.001.002");
+            detail1.setMainAccountId("");
             detail1.setDepartmentId(2L);
             detail1.setJournalDetailsTransactionCurrencyCode("IDR");
             detail1.setTransactionAmountDebit((double) 0);
-            detail1.setTransactionAmountCredit(null);//isi
+            detail1.setTransactionAmountCredit(transactionAccountingAmount);
             detail1.setExchangeRate((double) 1);
             detail1.setAccountingCurrencyCode("IDR");
             detail1.setAccountingAmountDebit((double) 0);
-            detail1.setAccountingAmountCredit(null);//isi
+            detail1.setAccountingAmountCredit(transactionAccountingAmount);
             detail1.setJournalDetailNotes(journalNotes);
             detail1.setSettledTransactionId(null);
             detail1.setTaxJournalDetailId(null);
@@ -372,10 +415,10 @@ public class PenjurnalanService {
             journalPelunasanIJP.setDepartmentId(2L);
             journalPelunasanIJP.setDebitCredit("D");
             journalPelunasanIJP.setTransactionCurrencyCode("IDR");
-            journalPelunasanIJP.setTransactionAmount(null);//isi
+            journalPelunasanIJP.setTransactionAmount(transactionAccountingAmount.longValue());
             journalPelunasanIJP.setExchangeRate(1L);
             journalPelunasanIJP.setAccountingCurrencyCode("IDR");
-            journalPelunasanIJP.setAccountingAmount(null);//isi
+            journalPelunasanIJP.setAccountingAmount(transactionAccountingAmount.longValue());
             journalPelunasanIJP.setFinancialMonth(Long.parseLong(monthJournalFormat.format(new Date())));
             journalPelunasanIJP.setFinancialYear(Long.parseLong(yearJournalFormat.format(new Date())));
             journalPelunasanIJP.setPostingStatus("Posted");
@@ -408,22 +451,48 @@ public class PenjurnalanService {
             Optional<PenjaminanKur> penjaminanKur = penjaminanKurRepo.findByNoSertifikat(klaimKur.get().getNoRekening());
             Optional<PenjaminanKurSpr> penjaminanKurSpr = penjaminanKurSprRepo.findByNoSertifikatSpr(klaimKur.get().getNoRekening());
             Optional<ProductAcs> productAcs = null;
-            if (penjaminanKur.isPresent())
-                productAcs = productAcsRepo.findByJenisKreditAndJenisKur(penjaminanKur.get().getJenisKredit(), penjaminanKur.get().getJenisKur());
 
-            String idPenjaminan = (penjaminanKurSpr != null) ? penjaminanKurSpr.get().getIdPenjaminan() : "";
-            String noPolis = (penjaminanKurSpr != null) ? penjaminanKurSpr.get().getNoSertifikatSpr() : penjaminanKur.get().getNoSertifikat();
-            String namaUker = (penjaminanKurSpr != null) ? "" : penjaminanKur.get().getNamaUker();
-            String jwkAwal = (penjaminanKurSpr != null) ? dateJournalFormat.format(penjaminanKurSpr.get().getTanggalAwalSpr()) : dateJournalFormat.format(penjaminanKur.get().getTanggalAwal());
-            String jwkAkhir = (penjaminanKurSpr != null) ? dateJournalFormat.format(penjaminanKurSpr.get().getTanggalAkhirSpr()) : dateJournalFormat.format(penjaminanKur.get().getTanggalAkhir());
-            String kodeProduk = (productAcs.isPresent()) ? productAcs.get().getProductId() : "";
-            String namaProduk = (productAcs.isPresent()) ? productAcs.get().getProductName() : "";
-            String produk = kodeProduk+" "+namaProduk;
+            String idPenjaminan = "";
+            String noPolis = "";
+            String namaUker = "";
+            String jwkAwal = "";
+            String jwkAkhir = "";
+            String kodeProduk = "";
+            String namaProduk = "";
             String tanggalTerbitPolis = dateJournalFormat.format(klaimKur.get().getTanggalPosting());
-            String debitur = (penjaminanKurSpr != null) ? "" : penjaminanKur.get().getNamaDebitur();
+            String debitur = "";
             String noRekeningPinjaman = klaimKur.get().getNoRekening();
+            Long plafond = null;
+            String branchIdString = (penjaminanKur.isPresent()) ? penjaminanKur.get().getKodeCabangAsk() : "";
+            String dueDate = (penjaminanKur.isPresent()) ? dateJournalFormat.format(penjaminanKur.get().getTglApproveSpv()) : "";
+            Double grossPremium = klaimKur.get().getNetClaimApproved().doubleValue();
+            Double transactionAccountingAmount = klaimKur.get().getNetClaimApproved().doubleValue();
+
+            if (penjaminanKurSpr.isPresent()) {
+                idPenjaminan = penjaminanKurSpr.get().getIdPenjaminan();
+                noPolis = penjaminanKurSpr.get().getNoSertifikatSpr();
+                namaUker = "";
+                jwkAwal = dateJournalFormat.format(penjaminanKurSpr.get().getTanggalAwalSpr());
+                jwkAkhir = dateJournalFormat.format(penjaminanKurSpr.get().getTanggalAkhirSpr());
+                debitur = "";
+                plafond = penjaminanKurSpr.get().getPlafonSpr().longValue();
+            } else {
+                if (penjaminanKur.isPresent()) {
+                    productAcs = productAcsRepo.findByJenisKreditAndJenisKur(penjaminanKur.get().getJenisKredit(), penjaminanKur.get().getJenisKur());
+                    kodeProduk = (productAcs.isPresent()) ? productAcs.get().getProductId() : "";
+                    namaProduk = (productAcs.isPresent()) ? productAcs.get().getProductName() : "";
+                    idPenjaminan = penjaminanKur.get().getId();
+                    noPolis = penjaminanKur.get().getNoSertifikat();
+                    namaUker = penjaminanKur.get().getNamaUker();
+                    jwkAwal = dateJournalFormat.format(penjaminanKur.get().getTanggalAwal());
+                    jwkAkhir = dateJournalFormat.format(penjaminanKur.get().getTanggalAkhir());
+                    debitur = penjaminanKur.get().getNamaDebitur();
+                    plafond =  penjaminanKur.get().getPlafonKredit().longValue();
+                }
+            }
+
+            String produk = kodeProduk+" "+namaProduk;
             String namaTertanggung = "BANK RAKYAT INDONESIA, UKER : "+namaUker+", DEBITUR : "+debitur;
-            Long plafond =  (penjaminanKurSpr != null) ? penjaminanKurSpr.get().getPlafonSpr().longValue() : penjaminanKur.get().getPlafonKredit().longValue();
             String journalNotes = "Nomor LPK : "+klaimKur.get().getNoKlaim()+", Polis : "+noPolis+", Nasabah : "+namaUker+", Periode : "+jwkAwal+"-"+jwkAkhir+", Produk : "+produk+", Debitur : "+debitur+", No Rekening Pinjaman : "+noRekeningPinjaman;
 
             //========================================================
@@ -431,7 +500,7 @@ public class PenjurnalanService {
             detail1.setId(null);
             detail1.setJournalId(null);
             detail1.setBranchId(null);
-            detail1.setBranchIdString(penjaminanKur.get().getKodeCabangAsk());
+            detail1.setBranchIdString(branchIdString);
             detail1.setAccountTypeIdString("Ledger");
             detail1.setAccountId(null);
             detail1.setAccountIdString("201110020161");
@@ -440,11 +509,11 @@ public class PenjurnalanService {
             detail1.setMainAccountId("1.02.01.01.001.002");
             detail1.setDepartmentId(2L);
             detail1.setJournalDetailsTransactionCurrencyCode("IDR");
-            detail1.setTransactionAmountDebit(null);//isi
+            detail1.setTransactionAmountDebit(transactionAccountingAmount);
             detail1.setTransactionAmountCredit((double) 0);
             detail1.setExchangeRate(null);
             detail1.setAccountingCurrencyCode("IDR");
-            detail1.setAccountingAmountDebit(null);//isi
+            detail1.setAccountingAmountDebit(transactionAccountingAmount);
             detail1.setAccountingAmountCredit((double) 0);
             detail1.setJournalDetailNotes("");
             detail1.setSettledTransactionId(null);
@@ -455,7 +524,7 @@ public class PenjurnalanService {
             detail2.setId(null);
             detail2.setJournalId(null);
             detail2.setBranchId(null);
-            detail2.setBranchIdString(penjaminanKur.get().getKodeCabangAsk());
+            detail2.setBranchIdString(branchIdString);
             detail2.setAccountTypeIdString("Vendor");
             detail2.setAccountId(null);
             detail2.setAccountIdString(null);
@@ -465,11 +534,11 @@ public class PenjurnalanService {
             detail2.setDepartmentId(2L);
             detail2.setJournalDetailsTransactionCurrencyCode("IDR");
             detail2.setTransactionAmountDebit((double) 0);
-            detail2.setTransactionAmountCredit(null);//isi
+            detail2.setTransactionAmountCredit(transactionAccountingAmount);
             detail2.setExchangeRate(null);
             detail2.setAccountingCurrencyCode("IDR");
             detail2.setAccountingAmountDebit((double) 0);
-            detail2.setAccountingAmountCredit(null);//isi
+            detail2.setAccountingAmountCredit(transactionAccountingAmount);
             detail2.setJournalDetailNotes(journalNotes);
             detail2.setSettledTransactionId(null);
             detail2.setTaxJournalDetailId(null);
@@ -497,8 +566,8 @@ public class PenjurnalanService {
             journalProduksiKlaimExtended.setPeriodeAkhir(jwkAkhir);
             journalProduksiKlaimExtended.setCurrencyCode("IDR");
             journalProduksiKlaimExtended.setSumInsured(plafond);
-            journalProduksiKlaimExtended.setDueDate("");//isi
-            journalProduksiKlaimExtended.setGrossPremium(null);//isi
+            journalProduksiKlaimExtended.setDueDate(dueDate);
+            journalProduksiKlaimExtended.setGrossPremium(grossPremium);
             journalProduksiKlaimExtended.setDiscount(0L);
             journalProduksiKlaimExtended.setPolicyFee(null);
             journalProduksiKlaimExtended.setStampDuty(null);
@@ -516,7 +585,7 @@ public class PenjurnalanService {
             JournalProduksiKlaim journalProduksiKlaim = new JournalProduksiKlaim();
             journalProduksiKlaim.setId(null);
             journalProduksiKlaim.setBranchId(null);
-            journalProduksiKlaim.setBranchIdString(penjaminanKur.get().getKodeCabangAsk());
+            journalProduksiKlaim.setBranchIdString(branchIdString);
             journalProduksiKlaim.setDocumentTypeId(7L);
             journalProduksiKlaim.setAccountingDate(dateJournalFormat.format(new Date()));
             journalProduksiKlaim.setEntryDate(dateJournalFormat.format(new Date()));
@@ -553,7 +622,7 @@ public class PenjurnalanService {
             journalProduksiKlaim.setAccountTypeIdString(null);
             journalProduksiKlaim.setJournalExtended(journalProduksiKlaimExtended);
             journalProduksiKlaim.setVaNumberInternal(null);
-            journalProduksiKlaim.setDataId("");//isi
+            journalProduksiKlaim.setDataId("");
             journalProduksiKlaim.setVaNumbers(null);
             //========================================================
 
@@ -597,7 +666,7 @@ public class PenjurnalanService {
         try {
             if (data.getDataType().contains("CLAIM")) {
                 Optional<KlaimKur> result = klaimKurRepo.findById(Integer.valueOf(data.getTrxId()));
-                if (result != null) {
+                if (result.isPresent()) {
                     KlaimKur klaimKur = result.get();
                     klaimKur.setNoJurnal(noJurnal);
                     klaimKur.setTanggalPosting(new Date());
@@ -605,7 +674,7 @@ public class PenjurnalanService {
                 }
             } else if (data.getDataType().contains("IJP")) {
                 Optional<TIjpProjected> result = tIjpProjectedRepo.findById(Integer.valueOf(data.getTrxId()));
-                if (result != null) {
+                if (result.isPresent()) {
                     TIjpProjected tIjpProjected = result.get();
                     tIjpProjected.setNoJurnal(noJurnal);
                     tIjpProjected.setTanggalPosting(new Date());
