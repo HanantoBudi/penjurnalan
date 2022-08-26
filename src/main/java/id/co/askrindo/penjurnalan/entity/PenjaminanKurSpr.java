@@ -44,13 +44,13 @@ public class PenjaminanKurSpr {
     @Column(name = "no_pk_spr")
     private String noPkSpr;
 
-    @Column(name = "tanggak_pk_spr")
+    @Column(name = "tanggal_pk_spr")
     private Date tanggalPkSpr;
 
-    @Column(name = "tanggak_awal_spr")
+    @Column(name = "tanggal_awal_spr")
     private Date tanggalAwalSpr;
 
-    @Column(name = "tanggak_akhir_spr")
+    @Column(name = "tanggal_akhir_spr")
     private Date tanggalAkhirSpr;
 
     @Column(name = "jangka_waktu_spr")
@@ -61,15 +61,6 @@ public class PenjaminanKurSpr {
 
     @Column(name = "plafon_spr")
     private BigDecimal plafonSpr;
-
-    @Column(name = "status_data")
-    private String statusData;
-
-    @Column(name = "status_rekening")
-    private String statusRekening;
-
-    @Column(name = "jenis_penundaan")
-    private String jenisPenundaan;
 
     @Column(name = "tanggal_awal_penundaan")
     private Date tanggalAwalPenundaam;
@@ -131,7 +122,4 @@ public class PenjaminanKurSpr {
 
     @Column(name = "flag_pembatalan")
     private String flagPembatalan;
-
-    @Column(name = "status_ijp")
-    private String statusIjp;
 }

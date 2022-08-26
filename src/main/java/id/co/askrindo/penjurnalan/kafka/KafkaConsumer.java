@@ -22,7 +22,7 @@ public class KafkaConsumer {
     @Value("${spring.kafka.topic.pelunasanIjp}")
     private String topicPelunasanIjp;
 
-    @Value("${spring.kafka.topic.produksiKlain}")
+    @Value("${spring.kafka.topic.produksiKlaim}")
     private String topicProduksiKlaim;
 
     @Autowired

@@ -68,9 +68,6 @@ public class KlaimKur {
     @Column(name = "tipe_claim")
     private String tipeClaim;
 
-    @Column(name = "track_status")
-    private String trackStatus;
-
     @Column(name = "status_proses_acs")
     private String statusProsesAcs;
 

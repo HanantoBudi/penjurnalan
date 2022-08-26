@@ -38,9 +38,6 @@ public class PenjaminanKur {
     @Column(name = "no_sertifikat")
     private String noSertifikat;
 
-    @Column(name = "cf")
-    private String cf;
-
     @Column(name = "no_pk")
     private String noPk;
 
@@ -134,7 +131,7 @@ public class PenjaminanKur {
     @Column(name = "status_lunas")
     private String statusLunas;
 
-    @Column(name = "status_kolektitbilitas")
+    @Column(name = "status_kolektibilitas")
     private String statusKolektibilitas;
 
     @Column(name = "usaha_produktif")
@@ -223,8 +220,5 @@ public class PenjaminanKur {
     private String flagPembatalan;
 
     @Column(name = "flag_os_penjaminan")
-    private String flagOsPenjaminan;
-
-    @Column(name = "status_ijp")
-    private String statusIjp;
+    private Integer flagOsPenjaminan;
 }

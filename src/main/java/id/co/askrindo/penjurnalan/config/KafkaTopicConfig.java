@@ -9,40 +9,31 @@ import org.springframework.kafka.config.TopicBuilder;
 @Configuration
 public class KafkaTopicConfig {
 
-//    @Value("${spring.kafka.topic.koreksiIjp}")
-//    private String topicKoreksiIjp;
-//
-//    @Value("${spring.kafka.topic.koreksiKlaim}")
-//    private String topicKoreksiKlaim;
-//
-//    @Value("${spring.kafka.topic.produksiIjp}")
-//    private String topicProduksiIjp;
-//
-//    @Value("${spring.kafka.topic.produksiKlain}")
-//    private String topicProduksiKlaim;
+    @Value("${spring.kafka.topic.produksiIjp}")
+    private String topicProduksiIjp;
 
-//    @Bean
-//    public NewTopic javaguidesTopicKoreksiIjp() {
-//        return TopicBuilder.name(topicKoreksiIjp)
-//            .build();
-//    }
-//
-//    @Bean
-//    public NewTopic javaguidesTopicKoreksiKlain() {
-//        return TopicBuilder.name(topicKoreksiKlaim)
-//            .build();
-//    }
-//
-//    @Bean
-//    public NewTopic javaguidesTopicProduksiIjp() {
-//        return TopicBuilder.name(topicProduksiIjp)
-//            .build();
-//    }
-//
-//    @Bean
-//    public NewTopic javaguidesTopicProduksiKlain() {
-//        return TopicBuilder.name(topicProduksiKlaim)
-//            .build();
-//    }
+    @Value("${spring.kafka.topic.pelunasanIjp}")
+    private String topicPelunasanIjp;
+
+    @Value("${spring.kafka.topic.produksiKlaim}")
+    private String topicProduksiKlaim;
+
+    @Bean
+    public NewTopic javaguidesTopicPelunasanIjp() {
+        return TopicBuilder.name(topicPelunasanIjp)
+            .build();
+    }
+
+    @Bean
+    public NewTopic javaguidesTopicProduksiIjp() {
+        return TopicBuilder.name(topicProduksiIjp)
+            .build();
+    }
+
+    @Bean
+    public NewTopic javaguidesTopicProduksiKlain() {
+        return TopicBuilder.name(topicProduksiKlaim)
+            .build();
+    }
 
 }
