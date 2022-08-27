@@ -57,7 +57,7 @@ public class PenjurnalanService {
     DateFormat yearJournalFormat = new SimpleDateFormat("yyyy");
 
     @Transactional
-    public ResponseEntity<?> penjurnalanProcess(String topic, UUID uuid) {
+    public ResponseEntity<?> penjurnalanProcess(String topic, String uuid) {
         try {
             JournalProduksiIJP journalProduksiIJP = null;
             JournalPelunasanIJP journalPelunasanIJP = null;
@@ -148,7 +148,7 @@ public class PenjurnalanService {
         }
     }
 
-    private JournalProduksiIJP mappingProduksiIjp (String topic, UUID uuid) {
+    private JournalProduksiIJP mappingProduksiIjp (String topic, String uuid) {
         try {
             Optional<TIjpProjected> tIjpProjected = tIjpProjectedRepo.findById(uuid.toString());
             Optional<PenjaminanKur> penjaminanKur = penjaminanKurRepo.findByNoSertifikat(tIjpProjected.get().getNoRekeningPinjaman());
@@ -337,7 +337,7 @@ public class PenjurnalanService {
 
     }
 
-    private JournalPelunasanIJP mappingPelunasanIjp (String topic, UUID uuid) {
+    private JournalPelunasanIJP mappingPelunasanIjp (String topic, String uuid) {
         try {
             Optional<TIjpProjected> tIjpProjected = tIjpProjectedRepo.findById(uuid.toString());
             Optional<PenjaminanKur> penjaminanKur = penjaminanKurRepo.findByNoSertifikat(tIjpProjected.get().getNoRekeningPinjaman());
@@ -445,7 +445,7 @@ public class PenjurnalanService {
         }
     }
 
-    private JournalProduksiKlaim mappingProduksiKlaim (String topic, UUID uuid) {
+    private JournalProduksiKlaim mappingProduksiKlaim (String topic, String uuid) {
         try {
             Optional<KlaimKur> klaimKur = klaimKurRepo.findById(uuid.toString());
             Optional<PenjaminanKur> penjaminanKur = penjaminanKurRepo.findByNoSertifikat(klaimKur.get().getNoRekening());

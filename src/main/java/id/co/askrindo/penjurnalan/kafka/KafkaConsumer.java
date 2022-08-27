@@ -9,8 +9,6 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.kafka.annotation.KafkaListener;
 import org.springframework.stereotype.Service;
 
-import java.util.UUID;
-
 @Service
 public class KafkaConsumer {
 
@@ -29,27 +27,27 @@ public class KafkaConsumer {
     private PenjurnalanService penjurnalanService;
 
     @KafkaListener(topics = "${spring.kafka.topic.produksiIjp}", groupId = "${spring.kafka.consumer.group-id}")
-    public void consumeProduksiIjp(UUID tIjpProjectedId) throws JsonProcessingException {
+    public void consumeProduksiIjp(String tIjpProjectedId) throws JsonProcessingException {
         LOGGER.info(String.format("Json message recieved : %s [start] -> %s", topicProduksiIjp, tIjpProjectedId));
         sendToService("PRODUKSI IJP", tIjpProjectedId);
         LOGGER.info(String.format("Json message recieved : %s [end] -> %s", topicProduksiIjp, tIjpProjectedId));
     }
 
     @KafkaListener(topics = "${spring.kafka.topic.pelunasanIjp}", groupId = "${spring.kafka.consumer.group-id}")
-    public void consumePelunasanIjp(UUID tIjpProjectedId) throws JsonProcessingException {
+    public void consumePelunasanIjp(String tIjpProjectedId) throws JsonProcessingException {
         LOGGER.info(String.format("Json message recieved : %s [start] -> %s", topicPelunasanIjp, tIjpProjectedId));
         sendToService("PELUNASAN IJP", tIjpProjectedId);
         LOGGER.info(String.format("Json message recieved : %s [end] -> %s", topicPelunasanIjp, tIjpProjectedId));
     }
 
     @KafkaListener(topics = "${spring.kafka.topic.produksiKlaim}", groupId = "${spring.kafka.consumer.group-id}")
-    public void consumeProduksiKlaim(UUID klaimId) throws JsonProcessingException {
+    public void consumeProduksiKlaim(String klaimId) throws JsonProcessingException {
         LOGGER.info(String.format("Json message recieved : %s [start] -> %s", topicProduksiKlaim, klaimId));
         sendToService("PRODUKSI KLAIM", klaimId);
         LOGGER.info(String.format("Json message recieved : %s [end] -> %s", topicProduksiKlaim, klaimId));
     }
 
-    public void sendToService(String topic, UUID uuid){
+    public void sendToService(String topic, String uuid){
         penjurnalanService.penjurnalanProcess(topic, uuid);
     }
 }
