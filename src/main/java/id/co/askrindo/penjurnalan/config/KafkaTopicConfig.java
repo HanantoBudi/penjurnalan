@@ -31,7 +31,7 @@ public class KafkaTopicConfig {
     }
 
     @Bean
-    public NewTopic javaguidesTopicProduksiKlain() {
+    public NewTopic javaguidesTopicProduksiKlaim() {
         return TopicBuilder.name(topicProduksiKlaim)
             .build();
     }

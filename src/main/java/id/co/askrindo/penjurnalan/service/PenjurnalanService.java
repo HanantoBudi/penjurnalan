@@ -162,7 +162,7 @@ public class PenjurnalanService {
             String jwkAkhir = "";
             String kodeProduk = "";
             String namaProduk = "";
-            String tanggalTerbitPolis = dateJournalFormat.format(tIjpProjected.get().getTanggalProduksi());
+            String tanggalTerbitPolis = (tIjpProjected.get().getTanggalProduksi() != null) ? dateJournalFormat.format(tIjpProjected.get().getTanggalProduksi()) : null;
             String debitur = "";
             String noRekeningPinjaman = tIjpProjected.get().getNoRekeningPinjaman();
             Long plafond = null;
@@ -195,8 +195,8 @@ public class PenjurnalanService {
             String namaTertanggung = "BANK RAKYAT INDONESIA, UKER : "+namaUker+", DEBITUR : "+debitur;
             String journalNotes = "Polis : "+noPolis+", Nasabah : "+namaUker+", Periode : "+jwkAwal+"-"+jwkAkhir+", Produk : "+produk+", Debitur : "+debitur+", No Rekening Pinjaman : "+noRekeningPinjaman;
             String dueDate = (penjaminanKur.isPresent()) ? dateJournalFormat.format(penjaminanKur.get().getTglApproveSpv()) : "";
-            Double grossPremium = tIjpProjected.get().getNominalIjp().doubleValue();
-            Double transactionAccountingAmount = tIjpProjected.get().getNominalIjp().doubleValue();
+            Double grossPremium = (tIjpProjected.get().getNominalIjp() != null) ? tIjpProjected.get().getNominalIjp().doubleValue() : null;
+            Double transactionAccountingAmount = (tIjpProjected.get().getNominalIjp() != null) ? tIjpProjected.get().getNominalIjp().doubleValue() : null;
 
             //========================================================
             JournalProduksiIJPDetailDTO detail1 = new JournalProduksiIJPDetailDTO();
@@ -459,14 +459,14 @@ public class PenjurnalanService {
             String jwkAkhir = "";
             String kodeProduk = "";
             String namaProduk = "";
-            String tanggalTerbitPolis = dateJournalFormat.format(klaimKur.get().getTanggalPosting());
+            String tanggalTerbitPolis = (klaimKur.get().getCreatedDate() != null) ? dateJournalFormat.format(klaimKur.get().getCreatedDate()) : null;
             String debitur = "";
             String noRekeningPinjaman = klaimKur.get().getNoRekening();
             Long plafond = null;
             String branchIdString = (penjaminanKur.isPresent()) ? penjaminanKur.get().getKodeCabangAsk() : "";
             String dueDate = (penjaminanKur.isPresent()) ? dateJournalFormat.format(penjaminanKur.get().getTglApproveSpv()) : "";
-            Double grossPremium = klaimKur.get().getNetClaimApproved().doubleValue();
-            Double transactionAccountingAmount = klaimKur.get().getNetClaimApproved().doubleValue();
+            Double grossPremium = (klaimKur.get().getNetClaimApproved() != null) ? klaimKur.get().getNetClaimApproved().doubleValue() : null;
+            Double transactionAccountingAmount = (klaimKur.get().getNetClaimApproved() != null) ? klaimKur.get().getNetClaimApproved().doubleValue() : null;
 
             if (penjaminanKurSpr.isPresent()) {
                 idPenjaminan = penjaminanKurSpr.get().getIdPenjaminan();
