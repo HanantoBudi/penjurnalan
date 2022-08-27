@@ -75,9 +75,16 @@ public class PenjurnalanService {
                 message = ow.writeValueAsString(journalProduksiKlaim);
             }
 
-            Optional<FinanceDataPosting> financeDataPosting = financeDataPostingRepo.findByTrxId(uuid.toString());
+            Optional<FinanceDataPosting> financeDataPosting = financeDataPostingRepo.findByTrxId(uuid);
 
-            if (financeDataPosting.isEmpty()) {
+            if (financeDataPosting.isPresent()) {
+                FinanceDataPosting data = financeDataPosting.get();
+                data.setDataJson(message);
+                data.setRetryCount(data.getRetryCount()+1);
+                data.setModifiedBy("h2h-kur-bri");
+                data.setModifiedDate(new Date());
+                FinanceDataPosting updateData = financeDataPostingRepo.save(data);
+            } {
                 FinanceDataPosting newData = new FinanceDataPosting();
                 newData.setDataType(setDataType(topic));
                 newData.setDataJson(message);
@@ -85,18 +92,11 @@ public class PenjurnalanService {
                 newData.setStatus(0);
                 newData.setRetryCount(0);
                 newData.setErrorMessage("");
-                newData.setTrxId(uuid.toString());
+                newData.setTrxId(uuid);
                 newData.setValueFromBackend("");
                 newData.setCreatedBy("h2h-kur-bri");
                 newData.setCreatedDate(new Date());
                 FinanceDataPosting saveData = financeDataPostingRepo.save(newData);
-            } {
-                FinanceDataPosting data = financeDataPosting.get();
-                data.setDataJson(message);
-                data.setRetryCount(data.getRetryCount()+1);
-                data.setModifiedBy("h2h-kur-bri");
-                data.setModifiedDate(new Date());
-                FinanceDataPosting updateData = financeDataPostingRepo.save(data);
             }
 
             //hit endpoint
@@ -150,7 +150,7 @@ public class PenjurnalanService {
 
     private JournalProduksiIJP mappingProduksiIjp (String topic, String uuid) {
         try {
-            Optional<TIjpProjected> tIjpProjected = tIjpProjectedRepo.findById(uuid.toString());
+            Optional<TIjpProjected> tIjpProjected = tIjpProjectedRepo.findById(uuid);
             Optional<PenjaminanKur> penjaminanKur = penjaminanKurRepo.findByNoSertifikat(tIjpProjected.get().getNoRekeningPinjaman());
             Optional<PenjaminanKurSpr> penjaminanKurSpr = penjaminanKurSprRepo.findByNoSertifikatSpr(tIjpProjected.get().getNoRekeningPinjaman());
             Optional<ProductAcs> productAcs = null;
@@ -339,7 +339,7 @@ public class PenjurnalanService {
 
     private JournalPelunasanIJP mappingPelunasanIjp (String topic, String uuid) {
         try {
-            Optional<TIjpProjected> tIjpProjected = tIjpProjectedRepo.findById(uuid.toString());
+            Optional<TIjpProjected> tIjpProjected = tIjpProjectedRepo.findById(uuid);
             Optional<PenjaminanKur> penjaminanKur = penjaminanKurRepo.findByNoSertifikat(tIjpProjected.get().getNoRekeningPinjaman());
             Optional<PenjaminanKurSpr> penjaminanKurSpr = penjaminanKurSprRepo.findByNoSertifikatSpr(tIjpProjected.get().getNoRekeningPinjaman());
             Double transactionAccountingAmount = tIjpProjected.get().getNominalIjp().doubleValue();
@@ -447,7 +447,7 @@ public class PenjurnalanService {
 
     private JournalProduksiKlaim mappingProduksiKlaim (String topic, String uuid) {
         try {
-            Optional<KlaimKur> klaimKur = klaimKurRepo.findById(uuid.toString());
+            Optional<KlaimKur> klaimKur = klaimKurRepo.findById(uuid);
             Optional<PenjaminanKur> penjaminanKur = penjaminanKurRepo.findByNoSertifikat(klaimKur.get().getNoRekening());
             Optional<PenjaminanKurSpr> penjaminanKurSpr = penjaminanKurSprRepo.findByNoSertifikatSpr(klaimKur.get().getNoRekening());
             Optional<ProductAcs> productAcs = null;

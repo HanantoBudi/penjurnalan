@@ -4,6 +4,7 @@ import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+import org.hibernate.annotations.GenericGenerator;
 import org.springframework.data.annotation.CreatedBy;
 import org.springframework.data.annotation.CreatedDate;
 import org.springframework.data.annotation.LastModifiedBy;
@@ -24,6 +25,8 @@ import java.util.Date;
 public class FinanceDataPosting {
 
     @Id
+    @GenericGenerator(name = "generator", strategy = "guid", parameters = {})
+    @GeneratedValue(generator = "generator")
     @Column(name = "data_id", columnDefinition="uniqueidentifier")
     private String dataId;
 
