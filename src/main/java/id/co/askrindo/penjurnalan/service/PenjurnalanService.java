@@ -664,7 +664,7 @@ public class PenjurnalanService {
 
     private void updateNoJurnalAndTanggalPosting(FinanceDataPosting data, String noJurnal) {
         try {
-            if (data.getDataType().contains("CLAIM")) {
+            if (data.getDataType().contains("KLAIM")) {
                 Optional<KlaimKur> result = klaimKurRepo.findById(Integer.valueOf(data.getTrxId()));
                 if (result.isPresent()) {
                     KlaimKur klaimKur = result.get();
