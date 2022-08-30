@@ -51,9 +51,9 @@ public class PenjurnalanService {
     @Autowired
     private Environment env;
 
-    DateFormat dateJournalFormat = new SimpleDateFormat("dd/mm/yyyy");
+    DateFormat dateJournalFormat = new SimpleDateFormat("dd/MM/yyyy");
     DateFormat dateFullFormat = new SimpleDateFormat("dd MMMM yyyy");
-    DateFormat monthJournalFormat = new SimpleDateFormat("mm");
+    DateFormat monthJournalFormat = new SimpleDateFormat("MM");
     DateFormat yearJournalFormat = new SimpleDateFormat("yyyy");
 
     @Transactional
