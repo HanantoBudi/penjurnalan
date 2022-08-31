@@ -14,6 +14,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.env.Environment;
 import org.springframework.http.*;
 import org.springframework.stereotype.Service;
+import org.springframework.web.client.HttpStatusCodeException;
 import org.springframework.web.client.RestTemplate;
 
 import javax.transaction.Transactional;
@@ -44,6 +45,9 @@ public class PenjurnalanService {
     private ProductAcsRepository productAcsRepo;
 
     @Autowired
+    private LogBrisurfRepository logBrisurfRepo;
+
+    @Autowired
     private TCoveringValidationRepository tCoveringValidationRepo;
 
     private RestTemplate restTemplate = new RestTemplate();
@@ -59,35 +63,15 @@ public class PenjurnalanService {
     @Transactional
     public ResponseEntity<?> penjurnalanProcess(String topic, String uuid) {
         try {
-            JournalProduksiIJP journalProduksiIJP = null;
-            JournalPelunasanIJP journalPelunasanIJP = null;
-            JournalProduksiKlaim journalProduksiKlaim = null;
-            ObjectWriter ow = new ObjectMapper().writer().withDefaultPrettyPrinter();
-            String message = "";
-            if (topic.equalsIgnoreCase("PRODUKSI IJP")) {
-                journalProduksiIJP = mappingProduksiIjp(topic, uuid);
-                message = ow.writeValueAsString(journalProduksiIJP);
-            } else if (topic.equalsIgnoreCase("PELUNASAN IJP")) {
-                journalPelunasanIJP = mappingPelunasanIjp(topic, uuid);
-                message = ow.writeValueAsString(journalPelunasanIJP);
-            } else if (topic.equalsIgnoreCase("PRODUKSI KLAIM")) {
-                journalProduksiKlaim = mappingProduksiKlaim(topic, uuid);
-                message = ow.writeValueAsString(journalProduksiKlaim);
-            }
+            Optional<FinanceDataPosting> existingFinanceDataPosting = financeDataPostingRepo.findByTrxIdAndJournalName(uuid, topic);
+            FinanceDataPosting financeDataPosting = null;
 
-            Optional<FinanceDataPosting> financeDataPosting = financeDataPostingRepo.findByTrxId(uuid);
-
-            if (financeDataPosting.isPresent()) {
-                FinanceDataPosting data = financeDataPosting.get();
-                data.setDataJson(message);
-                data.setRetryCount(data.getRetryCount()+1);
-                data.setModifiedBy("h2h-kur-bri");
-                data.setModifiedDate(new Date());
-                FinanceDataPosting updateData = financeDataPostingRepo.save(data);
-            } {
+            if (existingFinanceDataPosting.isPresent())
+                financeDataPosting = existingFinanceDataPosting.get();
+            else {
                 FinanceDataPosting newData = new FinanceDataPosting();
                 newData.setDataType(setDataType(topic));
-                newData.setDataJson(message);
+                newData.setDataJson("");
                 newData.setJournalName(topic);
                 newData.setStatus(0);
                 newData.setRetryCount(0);
@@ -96,59 +80,117 @@ public class PenjurnalanService {
                 newData.setValueFromBackend("");
                 newData.setCreatedBy("h2h-kur-bri");
                 newData.setCreatedDate(new Date());
-                FinanceDataPosting saveData = financeDataPostingRepo.save(newData);
+                financeDataPosting = financeDataPostingRepo.save(newData);
             }
 
-            //hit endpoint
-            ResponseEntity<String> responseFms = new ResponseEntity<>("", HttpStatus.OK);;
-            if (topic.equalsIgnoreCase("PRODUKSI IJP"))
-                responseFms = hitEndpointFMS(journalProduksiIJP);
-            else if (topic.equalsIgnoreCase("PELUNASAN IJP"))
-                responseFms = hitEndpointFMS(journalPelunasanIJP);
-            else if (topic.equalsIgnoreCase("PRODUKSI KLAIM"))
-                responseFms = hitEndpointFMS(journalProduksiKlaim);
+            Thread.sleep(2000);
 
-            String noJournal = "";
-
-            //save log to table
-            if(responseFms != null) {
-                try {
-                    JSONObject fmsResponse = new JSONObject(responseFms.getBody());
-                    if (topic.equalsIgnoreCase("PRODUKSI IJP"))
-                        noJournal = fmsResponse.getString(journalProduksiIJP.getSummaryDetailId());
-                    else if (topic.equalsIgnoreCase("PELUNASAN IJP"))
-                        noJournal = fmsResponse.getString(journalPelunasanIJP.getSummaryDetailId());
-                    else if (topic.equalsIgnoreCase("PRODUKSI KLAIM"))
-                        noJournal = fmsResponse.getString(journalProduksiKlaim.getSummaryDetailId());
-                } catch (JSONException e) {
-                    e.printStackTrace();
+            if (financeDataPosting.getDataId() != null) {
+                JournalProduksiIJP journalProduksiIJP = null;
+                JournalPelunasanIJP journalPelunasanIJP = null;
+                JournalProduksiKlaim journalProduksiKlaim = null;
+                ObjectWriter ow = new ObjectMapper().writer().withDefaultPrettyPrinter();
+                String message = "";
+                if (topic.equalsIgnoreCase("PRODUKSI IJP")) {
+                    journalProduksiIJP = mappingProduksiIjp(topic, uuid, financeDataPosting.getDataId());
+                    message = ow.writeValueAsString(journalProduksiIJP);
+                } else if (topic.equalsIgnoreCase("PELUNASAN IJP")) {
+                    journalPelunasanIJP = mappingPelunasanIjp(topic, uuid, financeDataPosting.getDataId());
+                    message = ow.writeValueAsString(journalPelunasanIJP);
+                } else if (topic.equalsIgnoreCase("PRODUKSI KLAIM")) {
+                    journalProduksiKlaim = mappingProduksiKlaim(topic, uuid, financeDataPosting.getDataId());
+                    message = ow.writeValueAsString(journalProduksiKlaim);
                 }
 
-                if (responseFms.getStatusCodeValue() == 201) {
-                    FinanceDataPosting data = financeDataPosting.get();
-                    data.setValueFromBackend(responseFms.toString());
-                    data.setStatus(1);
-                    FinanceDataPosting updateData = financeDataPostingRepo.save(data);
-
-                    if(updateData.getDataId() != null)
-                        updateNoJurnalAndTanggalPosting(updateData, noJournal);
-                }
-
-                return new ResponseEntity<>("PENJURNALAN CREATED", HttpStatus.OK);
-            } else {
-                FinanceDataPosting data = financeDataPosting.get();
-                data.setValueFromBackend(responseFms.toString());
-                data.setErrorMessage(responseFms.toString());
+                FinanceDataPosting data = financeDataPosting;
+                data.setDataId(financeDataPosting.getDataId());
+                data.setDataJson(message);
+                data.setModifiedBy("h2h-kur-bri");
+                data.setModifiedDate(new Date());
                 FinanceDataPosting updateData = financeDataPostingRepo.save(data);
-                return new ResponseEntity<>("FAILED HIT FMS API", HttpStatus.OK);
+                Thread.sleep(2000);
+
+                //hit endpoint
+                ResponseEntity<String> responseFms = new ResponseEntity<>("", HttpStatus.OK);;
+                if (topic.equalsIgnoreCase("PRODUKSI IJP"))
+                    responseFms = hitEndpointFMS(journalProduksiIJP, null, null, updateData);
+                else if (topic.equalsIgnoreCase("PELUNASAN IJP"))
+                    responseFms = hitEndpointFMS(null, journalPelunasanIJP, null, updateData);
+                else if (topic.equalsIgnoreCase("PRODUKSI KLAIM"))
+                    responseFms = hitEndpointFMS(null, null, journalProduksiKlaim, updateData);
+
+                String noJournal = "";
+
+                //save log to table
+                if(responseFms != null) {
+                    try {
+                        JSONObject fmsResponse = new JSONObject(responseFms.getBody());
+                        if (topic.equalsIgnoreCase("PRODUKSI IJP"))
+                            noJournal = fmsResponse.getString(journalProduksiIJP.getSummaryDetailId());
+                        else if (topic.equalsIgnoreCase("PELUNASAN IJP"))
+                            noJournal = fmsResponse.getString(journalPelunasanIJP.getSummaryDetailId());
+                        else if (topic.equalsIgnoreCase("PRODUKSI KLAIM"))
+                            noJournal = fmsResponse.getString(journalProduksiKlaim.getSummaryDetailId());
+                    } catch (JSONException e) {
+                        e.printStackTrace();
+                        return new ResponseEntity<>("FAILED HIT FMS API", HttpStatus.INTERNAL_SERVER_ERROR);
+                    }
+
+                    if (responseFms.getStatusCodeValue() == 201) {
+                        FinanceDataPosting dataSuccess = financeDataPosting;
+                        data.setRetryCount(data.getRetryCount()+1);
+                        dataSuccess.setValueFromBackend(responseFms.toString());
+                        dataSuccess.setStatus(1);
+                        FinanceDataPosting updateSuccessData = financeDataPostingRepo.save(dataSuccess);
+
+                        logger.info("PENJURNALAN CREATE, SUCCESS save data posting after hit api. " + updateSuccessData.toString());
+
+                        if(updateSuccessData.getDataId() != null)
+                            updateNoJurnalAndTanggalPosting(updateSuccessData, noJournal);
+
+                        LogBrisurf log = new LogBrisurf();
+                        if (topic.equalsIgnoreCase("PRODUKSI IJP")) {
+                            Optional<TIjpProjected> tIjpProjected = tIjpProjectedRepo.findById(uuid);
+                            log.setNoRekening(tIjpProjected.get().getNoRekeningPinjaman());
+                            log.setJsonRequest(journalProduksiIJP.toString());
+                        } else if (topic.equalsIgnoreCase("PELUNASAN IJP")) {
+                            Optional<TIjpProjected> tIjpProjected = tIjpProjectedRepo.findById(uuid);
+                            log.setNoRekening(tIjpProjected.get().getNoRekeningPinjaman());
+                            log.setJsonRequest(journalPelunasanIJP.toString());
+                        } else if (topic.equalsIgnoreCase("PRODUKSI KLAIM")) {
+                            Optional<KlaimKur> klaimKur = klaimKurRepo.findById(uuid);
+                            log.setNoRekening(klaimKur.get().getNoRekening());
+                            log.setJsonRequest(journalProduksiKlaim.toString());
+                        }
+                        log.setService("PenjurnalanService");
+                        log.setJsonResponse(String.valueOf(responseFms.getStatusCodeValue()));
+                        log.setResponseCode(String.valueOf(responseFms.getStatusCodeValue()));
+                        log.setResponseDesc("Success");
+                        log.setIsIncomingRequest(false);
+                        log.setEndpoint("http://10.10.1.233:8085/erp-api/journals/posts?postedBy=h2h-kur-bri&series=MEM");
+                        log.setHttpStatusCode(responseFms.getStatusCodeValue());
+                        log.setHttpMethod("POST");
+                        LogBrisurf newLog = logBrisurfRepo.save(log);
+
+                    }
+
+                    logger.info("PENJURNALAN CREATE, SUCCESS save finance data posting. " + financeDataPosting.toString());
+                    return new ResponseEntity<>("PENJURNALAN CREATED", HttpStatus.OK);
+                } else {
+                    return new ResponseEntity<>("FAILED HIT FMS API", HttpStatus.INTERNAL_SERVER_ERROR);
+                }
+            } else {
+                logger.info("PENJURNALAN CREATE, FAILED save finance data posting. ");
+                return new ResponseEntity<>("PENJURNALAN FAILED", HttpStatus.INTERNAL_SERVER_ERROR);
             }
+
         } catch (Exception e) {
             logger.error("PENJURNALAN CREATE, FAILED : "+e.getMessage());
             return new ResponseEntity<>(e.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR);
         }
     }
 
-    private JournalProduksiIJP mappingProduksiIjp (String topic, String uuid) {
+    private JournalProduksiIJP mappingProduksiIjp (String topic, String uuid, String dataId) {
         try {
             Optional<TIjpProjected> tIjpProjected = tIjpProjectedRepo.findById(uuid);
             Optional<PenjaminanKur> penjaminanKur = penjaminanKurRepo.findByNoSertifikat(tIjpProjected.get().getNoRekeningPinjaman());
@@ -200,7 +242,7 @@ public class PenjurnalanService {
 
             //========================================================
             JournalProduksiIJPDetailDTO detail1 = new JournalProduksiIJPDetailDTO();
-            detail1.setId(null);
+            detail1.setId(dataId);
             detail1.setJournalId(null);
             detail1.setBranchId(null);
             detail1.setBranchIdString(branchIdString);
@@ -303,7 +345,7 @@ public class PenjurnalanService {
             journalProduksiIJP.setDepartmentId(2L);
             journalProduksiIJP.setDebitCredit("D");
             journalProduksiIJP.setTransactionCurrencyCode("IDR");
-            journalProduksiIJP.setTransactionAmount(0L);
+            journalProduksiIJP.setTransactionAmount(null);
             journalProduksiIJP.setExchangeRate(null);
             journalProduksiIJP.setAccountingCurrencyCode("IDR");
             journalProduksiIJP.setAccountingAmount(0L);
@@ -337,7 +379,7 @@ public class PenjurnalanService {
 
     }
 
-    private JournalPelunasanIJP mappingPelunasanIjp (String topic, String uuid) {
+    private JournalPelunasanIJP mappingPelunasanIjp (String topic, String uuid, String dataId) {
         try {
             Optional<TIjpProjected> tIjpProjected = tIjpProjectedRepo.findById(uuid);
             Optional<PenjaminanKur> penjaminanKur = penjaminanKurRepo.findByNoSertifikat(tIjpProjected.get().getNoRekeningPinjaman());
@@ -368,7 +410,7 @@ public class PenjurnalanService {
 
             //========================================================
             JournalPelunasanIJPDetailDTO detail1 = new JournalPelunasanIJPDetailDTO();
-            detail1.setId(null);
+            detail1.setId(dataId);
             detail1.setJournalId(null);
             detail1.setBranchId(null);
             detail1.setBranchIdString("KP");
@@ -409,8 +451,8 @@ public class PenjurnalanService {
             journalPelunasanIJP.setAccountId(null);
             journalPelunasanIJP.setAccountCode(null);
             journalPelunasanIJP.setAccountFromTo("Bank BRI");
-            journalPelunasanIJP.setTransactionSourceId(6L);
-            journalPelunasanIJP.setAccountCashBankId(752L);
+            journalPelunasanIJP.setTransactionSourceId(12L);
+            journalPelunasanIJP.setAccountCashBankId(null);
             journalPelunasanIJP.setMainAccountId("1.01.02.01.002.002");
             journalPelunasanIJP.setDepartmentId(2L);
             journalPelunasanIJP.setDebitCredit("D");
@@ -445,7 +487,7 @@ public class PenjurnalanService {
         }
     }
 
-    private JournalProduksiKlaim mappingProduksiKlaim (String topic, String uuid) {
+    private JournalProduksiKlaim mappingProduksiKlaim (String topic, String uuid, String dataId) {
         try {
             Optional<KlaimKur> klaimKur = klaimKurRepo.findById(uuid);
             Optional<PenjaminanKur> penjaminanKur = penjaminanKurRepo.findByNoSertifikat(klaimKur.get().getNoRekening());
@@ -497,7 +539,7 @@ public class PenjurnalanService {
 
             //========================================================
             JournalProduksiKlaimDetailDTO detail1 = new JournalProduksiKlaimDetailDTO();
-            detail1.setId(null);
+            detail1.setId(dataId);
             detail1.setJournalId(null);
             detail1.setBranchId(null);
             detail1.setBranchIdString(branchIdString);
@@ -633,7 +675,11 @@ public class PenjurnalanService {
         }
     }
 
-    private ResponseEntity<String> hitEndpointFMS(Object journal) {
+    private ResponseEntity<String> hitEndpointFMS(
+            JournalProduksiIJP produksiIjp,
+            JournalPelunasanIJP pelunasanIjp,
+            JournalProduksiKlaim produksiKlaim,
+            FinanceDataPosting financeDataPosting) {
         ResponseEntity<String> responseFms = null;
         String username = "fmsadmin";
         String password = "askrindo123";
@@ -643,11 +689,50 @@ public class PenjurnalanService {
         String url = env.getProperty("fms.api.journal");
         headers.setContentType(MediaType.APPLICATION_JSON);
         headers.setBasicAuth(username, password);
-        HttpEntity requestEntity = new HttpEntity(journal, headers);
+        HttpEntity requestEntity = null;
+        if (produksiIjp != null)
+            requestEntity = new HttpEntity(produksiIjp, headers);
+        else if (pelunasanIjp != null)
+            requestEntity = new HttpEntity(pelunasanIjp, headers);
+        else if ((produksiKlaim != null))
+            requestEntity = new HttpEntity(produksiKlaim, headers);
+
         try {
             responseFms = restTemplate.postForEntity(url, requestEntity, String.class);
+            logger.info("PENJURNALAN CREATE, SUCCESS HIT API FMS : "+responseFms.toString());
         } catch (Exception e){
-            logger.error("PENJURNALAN CREATE, FAILED : "+e.getMessage());
+            FinanceDataPosting data = financeDataPosting;
+            data.setRetryCount(data.getRetryCount()+1);
+            data.setValueFromBackend(e.getMessage());
+            data.setErrorMessage(e.getMessage());
+            data.setModifiedBy("h2h-kur-bri");
+            data.setModifiedDate(new Date());
+            FinanceDataPosting updateData = financeDataPostingRepo.save(data);
+            logger.error("PENJURNALAN CREATE, FAILED HIT API FMS : "+e.getMessage());
+
+            LogBrisurf log = new LogBrisurf();
+            if (produksiIjp != null) {
+                Optional<TIjpProjected> tIjpProjected = tIjpProjectedRepo.findById(financeDataPosting.getTrxId());
+                log.setNoRekening(tIjpProjected.get().getNoRekeningPinjaman());
+                log.setJsonRequest(produksiIjp.toString());
+            } else if (pelunasanIjp != null) {
+                Optional<TIjpProjected> tIjpProjected = tIjpProjectedRepo.findById(financeDataPosting.getTrxId());
+                log.setNoRekening(tIjpProjected.get().getNoRekeningPinjaman());
+                log.setJsonRequest(pelunasanIjp.toString());
+            } else if ((produksiKlaim != null)) {
+                Optional<KlaimKur> klaimKur = klaimKurRepo.findById(financeDataPosting.getTrxId());
+                log.setNoRekening(klaimKur.get().getNoRekening());
+                log.setJsonRequest(produksiKlaim.toString());
+            }
+            log.setService("PenjurnalanService");
+            log.setJsonResponse(e.getMessage());
+            log.setResponseCode("500");
+            log.setResponseDesc("FAILED HIT");
+            log.setIsIncomingRequest(false);
+            log.setEndpoint("http://10.10.1.233:8085/erp-api/journals/posts?postedBy=h2h-kur-bri&series=MEM");
+            log.setHttpStatusCode(500);
+            log.setHttpMethod("POST");
+            LogBrisurf newLog = logBrisurfRepo.save(log);
         }
         return responseFms;
     }
@@ -681,6 +766,7 @@ public class PenjurnalanService {
                     tIjpProjectedRepo.save(tIjpProjected);
                 }
             }
+            logger.info("SUCCESS UPDATE NO_JURNAL. ");
         } catch (Exception e) {
             logger.error("FAILED UPDATE NO_JURNAL : "+e.getMessage());
         }
