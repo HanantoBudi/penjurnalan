@@ -1,6 +1,7 @@
 package id.co.askrindo.penjurnalan.service;
 
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
 import java.util.Optional;
@@ -9,12 +10,14 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import id.co.askrindo.penjurnalan.config.SSLContextHelper;
 import id.co.askrindo.penjurnalan.entity.FinanceDataPosting;
 import id.co.askrindo.penjurnalan.entity.KlaimKur;
+import id.co.askrindo.penjurnalan.entity.LogBrisurf;
 import id.co.askrindo.penjurnalan.entity.TIjpProjected;
 import id.co.askrindo.penjurnalan.model.JournalPelunasanIJP;
 import id.co.askrindo.penjurnalan.model.JournalProduksiIJP;
 import id.co.askrindo.penjurnalan.model.JournalProduksiKlaim;
 import id.co.askrindo.penjurnalan.repository.FinanceDataPostingRepository;
 import id.co.askrindo.penjurnalan.repository.KlaimKurRepository;
+import id.co.askrindo.penjurnalan.repository.LogBrisurfRepository;
 import id.co.askrindo.penjurnalan.repository.TIjpProjectedRepository;
 import org.json.JSONException;
 import org.json.JSONObject;
@@ -40,6 +43,9 @@ public class SchedulerService {
 	@Autowired
 	private TIjpProjectedRepository tIjpProjectedRepo;
 
+	@Autowired
+	private LogBrisurfRepository logBrisurfRepo;
+
 	private RestTemplate restTemplate = new RestTemplate();
 
 	@Autowired
@@ -56,7 +62,7 @@ public class SchedulerService {
 					data.setModifiedDate(new Date());
 					FinanceDataPosting updateData = financeDataPostingRepo.save(data);
 
-					ResponseEntity<String> responseFms = hitEndpointFMS(data.getDataJson(), data.getJournalName());
+					ResponseEntity<String> responseFms = hitEndpointFMS(data.getTrxId(), data.getDataJson(), data.getJournalName());
 
 					if(responseFms != null) {
 						try {
@@ -87,7 +93,7 @@ public class SchedulerService {
 		}
 	}
 
-	private ResponseEntity<String> hitEndpointFMS(String jsonData, String journalName) throws IOException {
+	private ResponseEntity<String> hitEndpointFMS(String trxId, String jsonData, String journalName) throws IOException {
 		ResponseEntity<String> responseFms = null;
 		String username = "fmsadmin";
 		String password = "askrindo123";
@@ -100,21 +106,79 @@ public class SchedulerService {
 
 		HttpEntity requestEntity = null;
 		ObjectMapper objectMapper = new ObjectMapper();
+		JournalProduksiIJP journalProduksiIJP = null;
+		JournalProduksiKlaim journalProduksiKlaim = null;
+		JournalPelunasanIJP journalPelunasanIJP = null;
 		if (journalName.equalsIgnoreCase("PRODUKSI IJP")) {
-			JournalProduksiIJP journalProduksiIJP = objectMapper.readValue(jsonData, JournalProduksiIJP.class);
-			requestEntity = new HttpEntity(journalProduksiIJP, headers);
+			List<JournalProduksiIJP> produksiIJPs = new ArrayList<>();
+			journalProduksiIJP = objectMapper.readValue(jsonData, JournalProduksiIJP.class);
+			produksiIJPs.add(journalProduksiIJP);
+			requestEntity = new HttpEntity(produksiIJPs, headers);
 		} else if (journalName.equalsIgnoreCase("PRODUKSI KLAIM")) {
-			JournalProduksiKlaim journalProduksiKlaim = objectMapper.readValue(jsonData, JournalProduksiKlaim.class);
-			requestEntity = new HttpEntity(journalProduksiKlaim, headers);
+			List<JournalProduksiKlaim> produksiKlaims = new ArrayList<>();
+			journalProduksiKlaim = objectMapper.readValue(jsonData, JournalProduksiKlaim.class);
+			produksiKlaims.add(journalProduksiKlaim);
+			requestEntity = new HttpEntity(produksiKlaims, headers);
 		} else if (journalName.equalsIgnoreCase("PELUNASAN IJP")) {
-			JournalPelunasanIJP journalPelunasanIJP = objectMapper.readValue(jsonData, JournalPelunasanIJP.class);
-			requestEntity = new HttpEntity(journalPelunasanIJP, headers);
+			List<JournalPelunasanIJP> pelunasanIJPs = new ArrayList<>();
+			journalPelunasanIJP = objectMapper.readValue(jsonData, JournalPelunasanIJP.class);
+			pelunasanIJPs.add(journalPelunasanIJP);
+			requestEntity = new HttpEntity(pelunasanIJPs, headers);
 		}
 
 		try {
 			responseFms = restTemplate.postForEntity(url, requestEntity, String.class);
+			logger.info("PENJURNALAN CREATE, SUCCESS HIT API FMS : "+responseFms.toString());
+
+			LogBrisurf log = new LogBrisurf();
+			if (journalName.equalsIgnoreCase("PRODUKSI IJP")) {
+				Optional<TIjpProjected> tIjpProjected = tIjpProjectedRepo.findById(trxId);
+				log.setNoRekening(tIjpProjected.get().getNoRekeningPinjaman());
+				log.setJsonRequest(journalProduksiIJP.toString());
+			} else if (journalName.equalsIgnoreCase("PELUNASAN IJP")) {
+				Optional<TIjpProjected> tIjpProjected = tIjpProjectedRepo.findById(trxId);
+				log.setNoRekening(tIjpProjected.get().getNoRekeningPinjaman());
+				log.setJsonRequest(journalPelunasanIJP.toString());
+			} else if (journalName.equalsIgnoreCase("PRODUKSI KLAIM")) {
+				Optional<KlaimKur> klaimKur = klaimKurRepo.findById(trxId);
+				log.setNoRekening(klaimKur.get().getNoRekening());
+				log.setJsonRequest(journalProduksiKlaim.toString());
+			}
+			log.setService("PenjurnalanService");
+			log.setJsonResponse(String.valueOf(responseFms.getStatusCodeValue()));
+			log.setResponseCode(String.valueOf(responseFms.getStatusCodeValue()));
+			log.setResponseDesc("Success");
+			log.setIsIncomingRequest(false);
+			log.setEndpoint("http://10.10.1.233:8085/erp-api/journals/posts?postedBy=h2h-kur-bri&series=MEM");
+			log.setHttpStatusCode(responseFms.getStatusCodeValue());
+			log.setHttpMethod("POST");
+			LogBrisurf newLog = logBrisurfRepo.save(log);
 		} catch (Exception e){
 			logger.error("PENJURNALAN CREATE, FAILED : "+e.getMessage());
+
+			LogBrisurf log = new LogBrisurf();
+			if (journalName.equalsIgnoreCase("PRODUKSI IJP")) {
+				Optional<TIjpProjected> tIjpProjected = tIjpProjectedRepo.findById(trxId);
+				log.setNoRekening(tIjpProjected.get().getNoRekeningPinjaman());
+				log.setJsonRequest(journalProduksiIJP.toString());
+			} else if (journalName.equalsIgnoreCase("PELUNASAN IJP")) {
+				Optional<TIjpProjected> tIjpProjected = tIjpProjectedRepo.findById(trxId);
+				log.setNoRekening(tIjpProjected.get().getNoRekeningPinjaman());
+				log.setJsonRequest(journalPelunasanIJP.toString());
+			} else if (journalName.equalsIgnoreCase("PRODUKSI KLAIM")) {
+				Optional<KlaimKur> klaimKur = klaimKurRepo.findById(trxId);
+				log.setNoRekening(klaimKur.get().getNoRekening());
+				log.setJsonRequest(journalProduksiKlaim.toString());
+			}
+			log.setService("PenjurnalanService");
+			log.setJsonResponse(e.getMessage());
+			log.setResponseCode("500");
+			log.setResponseDesc("FAILED HIT");
+			log.setIsIncomingRequest(false);
+			log.setEndpoint("http://10.10.1.233:8085/erp-api/journals/posts?postedBy=h2h-kur-bri&series=MEM");
+			log.setHttpStatusCode(500);
+			log.setHttpMethod("POST");
+			LogBrisurf newLog = logBrisurfRepo.save(log);
 		}
 		return responseFms;
 	}

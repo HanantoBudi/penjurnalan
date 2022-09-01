@@ -690,12 +690,21 @@ public class PenjurnalanService {
         headers.setContentType(MediaType.APPLICATION_JSON);
         headers.setBasicAuth(username, password);
         HttpEntity requestEntity = null;
-        if (produksiIjp != null)
-            requestEntity = new HttpEntity(produksiIjp, headers);
-        else if (pelunasanIjp != null)
-            requestEntity = new HttpEntity(pelunasanIjp, headers);
-        else if ((produksiKlaim != null))
-            requestEntity = new HttpEntity(produksiKlaim, headers);
+        if (produksiIjp != null) {
+            List<JournalProduksiIJP> produksiIJPs = new ArrayList<>();
+            produksiIJPs.add(produksiIjp);
+            requestEntity = new HttpEntity(produksiIJPs, headers);
+        }
+        else if (pelunasanIjp != null) {
+            List<JournalPelunasanIJP> pelunasanIJPs = new ArrayList<>();
+            pelunasanIJPs.add(pelunasanIjp);
+            requestEntity = new HttpEntity(pelunasanIJPs, headers);
+        }
+        else if ((produksiKlaim != null)) {
+            List<JournalProduksiKlaim> produksiKlaims = new ArrayList<>();
+            produksiKlaims.add(produksiKlaim);
+            requestEntity = new HttpEntity(produksiKlaims, headers);
+        }
 
         try {
             responseFms = restTemplate.postForEntity(url, requestEntity, String.class);
