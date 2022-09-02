@@ -1,5 +1,6 @@
 package id.co.askrindo.penjurnalan.service;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.ObjectWriter;
 import id.co.askrindo.penjurnalan.config.SSLContextHelper;
@@ -14,7 +15,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.env.Environment;
 import org.springframework.http.*;
 import org.springframework.stereotype.Service;
-import org.springframework.web.client.HttpStatusCodeException;
 import org.springframework.web.client.RestTemplate;
 
 import javax.transaction.Transactional;
@@ -242,7 +242,7 @@ public class PenjurnalanService {
 
             //========================================================
             JournalProduksiIJPDetailDTO detail1 = new JournalProduksiIJPDetailDTO();
-            detail1.setId(dataId);
+            detail1.setId(null);
             detail1.setJournalId(null);
             detail1.setBranchId(null);
             detail1.setBranchIdString(branchIdString);
@@ -297,7 +297,7 @@ public class PenjurnalanService {
             //========================================================
             JournalProduksiIJPExtended journalProduksiIJPExtended = new JournalProduksiIJPExtended();
             journalProduksiIJPExtended.setId(null);
-            journalProduksiIJPExtended.setJournalID(null);
+            journalProduksiIJPExtended.setJournalId(null);
             journalProduksiIJPExtended.setKodeCob(kodeProduk);
             journalProduksiIJPExtended.setNamaCob(namaProduk);
             journalProduksiIJPExtended.setNomorPolis(noPolis);
@@ -321,7 +321,7 @@ public class PenjurnalanService {
             journalProduksiIJPExtended.setPpn(0L);
             journalProduksiIJPExtended.setCreatorIPAddress(null);
             journalProduksiIJPExtended.setModifiedByIPAddress(null);
-            journalProduksiIJPExtended.setDataID(idPenjaminan);
+            journalProduksiIJPExtended.setDataId(idPenjaminan);
             journalProduksiIJPExtended.setSppaNo(noPolis);
             journalProduksiIJPExtended.setDataSource(2L);
             //========================================================
@@ -367,7 +367,7 @@ public class PenjurnalanService {
             journalProduksiIJP.setAccountTypeIdString(null);
             journalProduksiIJP.setJournalExtended(journalProduksiIJPExtended);
             journalProduksiIJP.setVaNumberInternal(null);
-            journalProduksiIJP.setDataId("");
+            journalProduksiIJP.setDataId(dataId);
             journalProduksiIJP.setVaNumbers(null);
             //========================================================
             
@@ -410,7 +410,7 @@ public class PenjurnalanService {
 
             //========================================================
             JournalPelunasanIJPDetailDTO detail1 = new JournalPelunasanIJPDetailDTO();
-            detail1.setId(dataId);
+            detail1.setId(null);
             detail1.setJournalId(null);
             detail1.setBranchId(null);
             detail1.setBranchIdString("KP");
@@ -539,7 +539,7 @@ public class PenjurnalanService {
 
             //========================================================
             JournalProduksiKlaimDetailDTO detail1 = new JournalProduksiKlaimDetailDTO();
-            detail1.setId(dataId);
+            detail1.setId(null);
             detail1.setJournalId(null);
             detail1.setBranchId(null);
             detail1.setBranchIdString(branchIdString);
@@ -618,7 +618,7 @@ public class PenjurnalanService {
             journalProduksiKlaimExtended.setPpn(0L);
             journalProduksiKlaimExtended.setCreatorIPAddress(null);
             journalProduksiKlaimExtended.setModifiedByIPAddress(null);
-            journalProduksiKlaimExtended.setDataID(klaimKur.get().getId());
+            journalProduksiKlaimExtended.setDataId(klaimKur.get().getId());
             journalProduksiKlaimExtended.setSppaNo(null);
             journalProduksiKlaimExtended.setDataSource(2L);
             //========================================================
@@ -664,7 +664,7 @@ public class PenjurnalanService {
             journalProduksiKlaim.setAccountTypeIdString(null);
             journalProduksiKlaim.setJournalExtended(journalProduksiKlaimExtended);
             journalProduksiKlaim.setVaNumberInternal(null);
-            journalProduksiKlaim.setDataId("");
+            journalProduksiKlaim.setDataId(dataId);
             journalProduksiKlaim.setVaNumbers(null);
             //========================================================
 
@@ -679,7 +679,7 @@ public class PenjurnalanService {
             JournalProduksiIJP produksiIjp,
             JournalPelunasanIJP pelunasanIjp,
             JournalProduksiKlaim produksiKlaim,
-            FinanceDataPosting financeDataPosting) {
+            FinanceDataPosting financeDataPosting) throws JsonProcessingException {
         ResponseEntity<String> responseFms = null;
         String username = "fmsadmin";
         String password = "askrindo123";
@@ -690,21 +690,39 @@ public class PenjurnalanService {
         headers.setContentType(MediaType.APPLICATION_JSON);
         headers.setBasicAuth(username, password);
         HttpEntity requestEntity = null;
+
+//        if (produksiIjp != null) {
+//            List<JournalProduksiIJP> produksiIJPs = new ArrayList<>();
+//            produksiIJPs.add(produksiIjp);
+//            requestEntity = new HttpEntity(produksiIJPs, headers);
+//        }
+//        else if (pelunasanIjp != null) {
+//            List<JournalPelunasanIJP> pelunasanIJPs = new ArrayList<>();
+//            pelunasanIJPs.add(pelunasanIjp);
+//            requestEntity = new HttpEntity(pelunasanIJPs, headers);
+//        }
+//        else if ((produksiKlaim != null)) {
+//            List<JournalProduksiKlaim> produksiKlaims = new ArrayList<>();
+//            produksiKlaims.add(produksiKlaim);
+//            requestEntity = new HttpEntity(produksiKlaims, headers);
+//        }
+
+        ObjectWriter ow = new ObjectMapper().writer().withDefaultPrettyPrinter();
+        String message = "";
         if (produksiIjp != null) {
             List<JournalProduksiIJP> produksiIJPs = new ArrayList<>();
             produksiIJPs.add(produksiIjp);
-            requestEntity = new HttpEntity(produksiIJPs, headers);
-        }
-        else if (pelunasanIjp != null) {
-            List<JournalPelunasanIJP> pelunasanIJPs = new ArrayList<>();
-            pelunasanIJPs.add(pelunasanIjp);
-            requestEntity = new HttpEntity(pelunasanIJPs, headers);
-        }
-        else if ((produksiKlaim != null)) {
+            message = ow.writeValueAsString(produksiIJPs);
+        } else if (pelunasanIjp != null) {
+            List<JournalPelunasanIJP> pelunasanIJPS = new ArrayList<>();
+            pelunasanIJPS.add(pelunasanIjp);
+            message = ow.writeValueAsString(pelunasanIJPS);
+        } else if ((produksiKlaim != null)) {
             List<JournalProduksiKlaim> produksiKlaims = new ArrayList<>();
             produksiKlaims.add(produksiKlaim);
-            requestEntity = new HttpEntity(produksiKlaims, headers);
+            message = ow.writeValueAsString(produksiKlaims);
         }
+        requestEntity = new HttpEntity(message, headers);
 
         try {
             responseFms = restTemplate.postForEntity(url, requestEntity, String.class);

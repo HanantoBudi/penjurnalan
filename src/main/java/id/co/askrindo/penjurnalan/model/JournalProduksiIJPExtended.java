@@ -1,16 +1,13 @@
 package id.co.askrindo.penjurnalan.model;
 
-import com.fasterxml.jackson.databind.PropertyNamingStrategy;
-import com.fasterxml.jackson.databind.annotation.JsonNaming;
 import lombok.Getter;
 import lombok.Setter;
 
 @Setter
 @Getter
-@JsonNaming(PropertyNamingStrategy.SnakeCaseStrategy.class)
 public class JournalProduksiIJPExtended {
     private String id;
-    private String journalID;
+    private String journalId;
     private String kodeCob;
     private String namaCob;
     private String nomorPolis;
@@ -34,7 +31,7 @@ public class JournalProduksiIJPExtended {
     private Long pph;
     private String creatorIPAddress;
     private String modifiedByIPAddress;
-    private String dataID;
+    private String dataId;
     private String sppaNo;
     private Long dataSource;
 }

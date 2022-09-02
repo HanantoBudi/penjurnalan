@@ -7,6 +7,7 @@ import java.util.List;
 import java.util.Optional;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.ObjectWriter;
 import id.co.askrindo.penjurnalan.config.SSLContextHelper;
 import id.co.askrindo.penjurnalan.entity.FinanceDataPosting;
 import id.co.askrindo.penjurnalan.entity.KlaimKur;
@@ -109,22 +110,42 @@ public class SchedulerService {
 		JournalProduksiIJP journalProduksiIJP = null;
 		JournalProduksiKlaim journalProduksiKlaim = null;
 		JournalPelunasanIJP journalPelunasanIJP = null;
+//		if (journalName.equalsIgnoreCase("PRODUKSI IJP")) {
+//			List<JournalProduksiIJP> produksiIJPs = new ArrayList<>();
+//			journalProduksiIJP = objectMapper.readValue(jsonData, JournalProduksiIJP.class);
+//			produksiIJPs.add(journalProduksiIJP);
+//			requestEntity = new HttpEntity(produksiIJPs, headers);
+//		} else if (journalName.equalsIgnoreCase("PRODUKSI KLAIM")) {
+//			List<JournalProduksiKlaim> produksiKlaims = new ArrayList<>();
+//			journalProduksiKlaim = objectMapper.readValue(jsonData, JournalProduksiKlaim.class);
+//			produksiKlaims.add(journalProduksiKlaim);
+//			requestEntity = new HttpEntity(produksiKlaims, headers);
+//		} else if (journalName.equalsIgnoreCase("PELUNASAN IJP")) {
+//			List<JournalPelunasanIJP> pelunasanIJPs = new ArrayList<>();
+//			journalPelunasanIJP = objectMapper.readValue(jsonData, JournalPelunasanIJP.class);
+//			pelunasanIJPs.add(journalPelunasanIJP);
+//			requestEntity = new HttpEntity(pelunasanIJPs, headers);
+//		}
+
+		ObjectWriter ow = new ObjectMapper().writer().withDefaultPrettyPrinter();
+		String message = "";
 		if (journalName.equalsIgnoreCase("PRODUKSI IJP")) {
 			List<JournalProduksiIJP> produksiIJPs = new ArrayList<>();
 			journalProduksiIJP = objectMapper.readValue(jsonData, JournalProduksiIJP.class);
 			produksiIJPs.add(journalProduksiIJP);
-			requestEntity = new HttpEntity(produksiIJPs, headers);
+			message = ow.writeValueAsString(produksiIJPs);
 		} else if (journalName.equalsIgnoreCase("PRODUKSI KLAIM")) {
 			List<JournalProduksiKlaim> produksiKlaims = new ArrayList<>();
 			journalProduksiKlaim = objectMapper.readValue(jsonData, JournalProduksiKlaim.class);
 			produksiKlaims.add(journalProduksiKlaim);
-			requestEntity = new HttpEntity(produksiKlaims, headers);
+			message = ow.writeValueAsString(produksiKlaims);
 		} else if (journalName.equalsIgnoreCase("PELUNASAN IJP")) {
 			List<JournalPelunasanIJP> pelunasanIJPs = new ArrayList<>();
 			journalPelunasanIJP = objectMapper.readValue(jsonData, JournalPelunasanIJP.class);
 			pelunasanIJPs.add(journalPelunasanIJP);
-			requestEntity = new HttpEntity(pelunasanIJPs, headers);
+			message = ow.writeValueAsString(pelunasanIJPs);
 		}
+		requestEntity = new HttpEntity(message, headers);
 
 		try {
 			responseFms = restTemplate.postForEntity(url, requestEntity, String.class);
